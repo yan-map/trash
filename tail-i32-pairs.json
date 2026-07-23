@@ -1,0 +1,1807 @@
+{
+  "layer": "immersive_roads",
+  "roflVersion": 4,
+  "schemaCount": 4,
+  "tailStart": 88128,
+  "knownCoordinateCount": 9838,
+  "decoded": {
+    "start": 88128,
+    "end": 106086,
+    "i32Count": 4489,
+    "pairCount": 1163,
+    "firstPairs": [
+      {
+        "index": 0,
+        "offsetA": 88144,
+        "offsetB": 88148,
+        "x": -43,
+        "y": 19380
+      },
+      {
+        "index": 1,
+        "offsetA": 88168,
+        "offsetB": 88172,
+        "x": 1961,
+        "y": -89
+      },
+      {
+        "index": 2,
+        "offsetA": 88184,
+        "offsetB": 88188,
+        "x": 33133,
+        "y": 13404
+      },
+      {
+        "index": 3,
+        "offsetA": 88200,
+        "offsetB": 88204,
+        "x": 31258,
+        "y": 33147
+      },
+      {
+        "index": 4,
+        "offsetA": 88204,
+        "offsetB": 88208,
+        "x": 33147,
+        "y": 20194
+      },
+      {
+        "index": 5,
+        "offsetA": 88208,
+        "offsetB": 88212,
+        "x": 20194,
+        "y": 33005
+      },
+      {
+        "index": 6,
+        "offsetA": 88232,
+        "offsetB": 88236,
+        "x": -367,
+        "y": 30996
+      },
+      {
+        "index": 7,
+        "offsetA": 88248,
+        "offsetB": 88252,
+        "x": 33032,
+        "y": 6005
+      },
+      {
+        "index": 8,
+        "offsetA": 88252,
+        "offsetB": 88256,
+        "x": 6005,
+        "y": 33044
+      },
+      {
+        "index": 9,
+        "offsetA": 88256,
+        "offsetB": 88260,
+        "x": 33044,
+        "y": 5887
+      },
+      {
+        "index": 10,
+        "offsetA": 88272,
+        "offsetB": 88276,
+        "x": 33360,
+        "y": 27121
+      },
+      {
+        "index": 11,
+        "offsetA": 88288,
+        "offsetB": 88292,
+        "x": 26131,
+        "y": 33022
+      },
+      {
+        "index": 12,
+        "offsetA": 88304,
+        "offsetB": 88308,
+        "x": -379,
+        "y": 31124
+      },
+      {
+        "index": 13,
+        "offsetA": 88320,
+        "offsetB": 88324,
+        "x": -392,
+        "y": 31252
+      },
+      {
+        "index": 14,
+        "offsetA": 88336,
+        "offsetB": 88340,
+        "x": 10154,
+        "y": 33655
+      },
+      {
+        "index": 15,
+        "offsetA": 88352,
+        "offsetB": 88356,
+        "x": -100,
+        "y": 18566
+      },
+      {
+        "index": 16,
+        "offsetA": 88368,
+        "offsetB": 88372,
+        "x": -515,
+        "y": 30723
+      },
+      {
+        "index": 17,
+        "offsetA": 88384,
+        "offsetB": 88388,
+        "x": 33133,
+        "y": 13404
+      },
+      {
+        "index": 18,
+        "offsetA": 88400,
+        "offsetB": 88404,
+        "x": 32817,
+        "y": 19400
+      },
+      {
+        "index": 19,
+        "offsetA": 88416,
+        "offsetB": 88420,
+        "x": -127,
+        "y": 17416
+      },
+      {
+        "index": 20,
+        "offsetA": 88432,
+        "offsetB": 88436,
+        "x": 24128,
+        "y": -1253
+      },
+      {
+        "index": 21,
+        "offsetA": 88448,
+        "offsetB": 88452,
+        "x": -93,
+        "y": 21423
+      },
+      {
+        "index": 22,
+        "offsetA": 88464,
+        "offsetB": 88468,
+        "x": 1833,
+        "y": -102
+      },
+      {
+        "index": 23,
+        "offsetA": 88468,
+        "offsetB": 88472,
+        "x": -102,
+        "y": 2089
+      },
+      {
+        "index": 24,
+        "offsetA": 88472,
+        "offsetB": 88476,
+        "x": 2089,
+        "y": -75
+      },
+      {
+        "index": 25,
+        "offsetA": 88488,
+        "offsetB": 88492,
+        "x": 31129,
+        "y": 33135
+      },
+      {
+        "index": 26,
+        "offsetA": 88504,
+        "offsetB": 88508,
+        "x": 32955,
+        "y": 16601
+      },
+      {
+        "index": 27,
+        "offsetA": 88520,
+        "offsetB": 88524,
+        "x": -74,
+        "y": 2950
+      },
+      {
+        "index": 28,
+        "offsetA": 88524,
+        "offsetB": 88528,
+        "x": 2950,
+        "y": -61
+      },
+      {
+        "index": 29,
+        "offsetA": 88528,
+        "offsetB": 88532,
+        "x": -61,
+        "y": 2821
+      },
+      {
+        "index": 30,
+        "offsetA": 88544,
+        "offsetB": 88548,
+        "x": 31411,
+        "y": 32784
+      },
+      {
+        "index": 31,
+        "offsetA": 88560,
+        "offsetB": 88564,
+        "x": 29164,
+        "y": -1061
+      },
+      {
+        "index": 32,
+        "offsetA": 88576,
+        "offsetB": 88580,
+        "x": 19689,
+        "y": 32826
+      },
+      {
+        "index": 33,
+        "offsetA": 88592,
+        "offsetB": 88596,
+        "x": 32949,
+        "y": 13959
+      },
+      {
+        "index": 34,
+        "offsetA": 88608,
+        "offsetB": 88612,
+        "x": 20182,
+        "y": 33133
+      },
+      {
+        "index": 35,
+        "offsetA": 88624,
+        "offsetB": 88628,
+        "x": -354,
+        "y": 30869
+      },
+      {
+        "index": 36,
+        "offsetA": 88640,
+        "offsetB": 88644,
+        "x": 18857,
+        "y": -456
+      },
+      {
+        "index": 37,
+        "offsetA": 88656,
+        "offsetB": 88660,
+        "x": -120,
+        "y": 30763
+      },
+      {
+        "index": 38,
+        "offsetA": 88672,
+        "offsetB": 88676,
+        "x": 15257,
+        "y": 32788
+      },
+      {
+        "index": 39,
+        "offsetA": 88688,
+        "offsetB": 88692,
+        "x": 32854,
+        "y": 13621
+      },
+      {
+        "index": 40,
+        "offsetA": 88692,
+        "offsetB": 88696,
+        "x": 13621,
+        "y": 32878
+      },
+      {
+        "index": 41,
+        "offsetA": 88696,
+        "offsetB": 88700,
+        "x": 32878,
+        "y": 13369
+      },
+      {
+        "index": 42,
+        "offsetA": 88720,
+        "offsetB": 88724,
+        "x": 23992,
+        "y": -1192
+      },
+      {
+        "index": 43,
+        "offsetA": 88724,
+        "offsetB": 88728,
+        "x": -1192,
+        "y": 24247
+      },
+      {
+        "index": 44,
+        "offsetA": 88728,
+        "offsetB": 88732,
+        "x": 24247,
+        "y": -1168
+      },
+      {
+        "index": 45,
+        "offsetA": 88752,
+        "offsetB": 88756,
+        "x": 18999,
+        "y": -400
+      },
+      {
+        "index": 46,
+        "offsetA": 88768,
+        "offsetB": 88772,
+        "x": 32854,
+        "y": 13621
+      },
+      {
+        "index": 47,
+        "offsetA": 88784,
+        "offsetB": 88788,
+        "x": 31004,
+        "y": 33122
+      },
+      {
+        "index": 48,
+        "offsetA": 88800,
+        "offsetB": 88804,
+        "x": 7303,
+        "y": -2090
+      },
+      {
+        "index": 49,
+        "offsetA": 88816,
+        "offsetB": 88820,
+        "x": -324,
+        "y": 30612
+      },
+      {
+        "index": 50,
+        "offsetA": 88832,
+        "offsetB": 88836,
+        "x": 483,
+        "y": 1466
+      },
+      {
+        "index": 51,
+        "offsetA": 88836,
+        "offsetB": 88840,
+        "x": 1466,
+        "y": -1949
+      },
+      {
+        "index": 52,
+        "offsetA": 88840,
+        "offsetB": 88844,
+        "x": -1949,
+        "y": 2206
+      },
+      {
+        "index": 53,
+        "offsetA": 88844,
+        "offsetB": 88848,
+        "x": 2206,
+        "y": 3822
+      },
+      {
+        "index": 54,
+        "offsetA": 88848,
+        "offsetB": 88852,
+        "x": 3822,
+        "y": -3519
+      },
+      {
+        "index": 55,
+        "offsetA": 88852,
+        "offsetB": 88856,
+        "x": -3519,
+        "y": -1918
+      },
+      {
+        "index": 56,
+        "offsetA": 88856,
+        "offsetB": 88860,
+        "x": -1918,
+        "y": 296
+      },
+      {
+        "index": 57,
+        "offsetA": 88860,
+        "offsetB": 88864,
+        "x": 296,
+        "y": 2950
+      },
+      {
+        "index": 58,
+        "offsetA": 88864,
+        "offsetB": 88868,
+        "x": 2950,
+        "y": 2162
+      },
+      {
+        "index": 59,
+        "offsetA": 88876,
+        "offsetB": 88880,
+        "x": 6327,
+        "y": -748
+      },
+      {
+        "index": 60,
+        "offsetA": 88880,
+        "offsetB": 88884,
+        "x": -748,
+        "y": -3108
+      },
+      {
+        "index": 61,
+        "offsetA": 88884,
+        "offsetB": 88888,
+        "x": -3108,
+        "y": 6796
+      },
+      {
+        "index": 62,
+        "offsetA": 88896,
+        "offsetB": 88900,
+        "x": 1891,
+        "y": -1601
+      },
+      {
+        "index": 63,
+        "offsetA": 88900,
+        "offsetB": 88904,
+        "x": -1601,
+        "y": -38
+      },
+      {
+        "index": 64,
+        "offsetA": 88904,
+        "offsetB": 88908,
+        "x": -38,
+        "y": 117
+      },
+      {
+        "index": 65,
+        "offsetA": 88908,
+        "offsetB": 88912,
+        "x": 117,
+        "y": 5049
+      },
+      {
+        "index": 66,
+        "offsetA": 88920,
+        "offsetB": 88924,
+        "x": 3914,
+        "y": -3230
+      },
+      {
+        "index": 67,
+        "offsetA": 88924,
+        "offsetB": 88928,
+        "x": -3230,
+        "y": 337
+      },
+      {
+        "index": 68,
+        "offsetA": 88928,
+        "offsetB": 88932,
+        "x": 337,
+        "y": -228
+      },
+      {
+        "index": 69,
+        "offsetA": 88932,
+        "offsetB": 88936,
+        "x": -228,
+        "y": -15
+      },
+      {
+        "index": 70,
+        "offsetA": 88936,
+        "offsetB": 88940,
+        "x": -15,
+        "y": 1025
+      },
+      {
+        "index": 71,
+        "offsetA": 88940,
+        "offsetB": 88944,
+        "x": 1025,
+        "y": -1434
+      },
+      {
+        "index": 72,
+        "offsetA": 88944,
+        "offsetB": 88948,
+        "x": -1434,
+        "y": 1197
+      },
+      {
+        "index": 73,
+        "offsetA": 88948,
+        "offsetB": 88952,
+        "x": 1197,
+        "y": -312
+      },
+      {
+        "index": 74,
+        "offsetA": 88952,
+        "offsetB": 88956,
+        "x": -312,
+        "y": -632
+      },
+      {
+        "index": 75,
+        "offsetA": 88956,
+        "offsetB": 88960,
+        "x": -632,
+        "y": -241
+      },
+      {
+        "index": 76,
+        "offsetA": 88960,
+        "offsetB": 88964,
+        "x": -241,
+        "y": 334
+      },
+      {
+        "index": 77,
+        "offsetA": 88964,
+        "offsetB": 88968,
+        "x": 334,
+        "y": -570
+      },
+      {
+        "index": 78,
+        "offsetA": 88968,
+        "offsetB": 88972,
+        "x": -570,
+        "y": 1880
+      },
+      {
+        "index": 79,
+        "offsetA": 88972,
+        "offsetB": 88976,
+        "x": 1880,
+        "y": 566
+      },
+      {
+        "index": 80,
+        "offsetA": 88976,
+        "offsetB": 88980,
+        "x": 566,
+        "y": -1305
+      },
+      {
+        "index": 81,
+        "offsetA": 88980,
+        "offsetB": 88984,
+        "x": -1305,
+        "y": 1
+      },
+      {
+        "index": 82,
+        "offsetA": 88984,
+        "offsetB": 88988,
+        "x": 1,
+        "y": -820
+      },
+      {
+        "index": 83,
+        "offsetA": 88988,
+        "offsetB": 88992,
+        "x": -820,
+        "y": 86
+      },
+      {
+        "index": 84,
+        "offsetA": 88992,
+        "offsetB": 88996,
+        "x": 86,
+        "y": -288
+      },
+      {
+        "index": 85,
+        "offsetA": 88996,
+        "offsetB": 89000,
+        "x": -288,
+        "y": 287
+      },
+      {
+        "index": 86,
+        "offsetA": 89000,
+        "offsetB": 89004,
+        "x": 287,
+        "y": -274
+      },
+      {
+        "index": 87,
+        "offsetA": 89004,
+        "offsetB": 89008,
+        "x": -274,
+        "y": 280
+      },
+      {
+        "index": 88,
+        "offsetA": 89008,
+        "offsetB": 89012,
+        "x": 280,
+        "y": -558
+      },
+      {
+        "index": 89,
+        "offsetA": 89012,
+        "offsetB": 89016,
+        "x": -558,
+        "y": 553
+      },
+      {
+        "index": 90,
+        "offsetA": 89016,
+        "offsetB": 89020,
+        "x": 553,
+        "y": -170
+      },
+      {
+        "index": 91,
+        "offsetA": 89020,
+        "offsetB": 89024,
+        "x": -170,
+        "y": -15
+      },
+      {
+        "index": 92,
+        "offsetA": 89024,
+        "offsetB": 89028,
+        "x": -15,
+        "y": 457
+      },
+      {
+        "index": 93,
+        "offsetA": 89028,
+        "offsetB": 89032,
+        "x": 457,
+        "y": -284
+      },
+      {
+        "index": 94,
+        "offsetA": 89032,
+        "offsetB": 89036,
+        "x": -284,
+        "y": -173
+      },
+      {
+        "index": 95,
+        "offsetA": 89036,
+        "offsetB": 89040,
+        "x": -173,
+        "y": 119
+      },
+      {
+        "index": 96,
+        "offsetA": 89040,
+        "offsetB": 89044,
+        "x": 119,
+        "y": 7
+      },
+      {
+        "index": 97,
+        "offsetA": 89044,
+        "offsetB": 89048,
+        "x": 7,
+        "y": -123
+      },
+      {
+        "index": 98,
+        "offsetA": 89048,
+        "offsetB": 89052,
+        "x": -123,
+        "y": 1
+      },
+      {
+        "index": 99,
+        "offsetA": 89052,
+        "offsetB": 89056,
+        "x": 1,
+        "y": -4
+      },
+      {
+        "index": 100,
+        "offsetA": 89056,
+        "offsetB": 89060,
+        "x": -4,
+        "y": -1
+      },
+      {
+        "index": 101,
+        "offsetA": 89060,
+        "offsetB": 89064,
+        "x": -1,
+        "y": 161
+      },
+      {
+        "index": 102,
+        "offsetA": 89064,
+        "offsetB": 89068,
+        "x": 161,
+        "y": 2611
+      },
+      {
+        "index": 103,
+        "offsetA": 89068,
+        "offsetB": 89072,
+        "x": 2611,
+        "y": -340
+      },
+      {
+        "index": 104,
+        "offsetA": 89072,
+        "offsetB": 89076,
+        "x": -340,
+        "y": -1972
+      },
+      {
+        "index": 105,
+        "offsetA": 89076,
+        "offsetB": 89080,
+        "x": -1972,
+        "y": 237
+      },
+      {
+        "index": 106,
+        "offsetA": 89080,
+        "offsetB": 89084,
+        "x": 237,
+        "y": -809
+      },
+      {
+        "index": 107,
+        "offsetA": 89084,
+        "offsetB": 89088,
+        "x": -809,
+        "y": 316
+      },
+      {
+        "index": 108,
+        "offsetA": 89088,
+        "offsetB": 89092,
+        "x": 316,
+        "y": -414
+      },
+      {
+        "index": 109,
+        "offsetA": 89092,
+        "offsetB": 89096,
+        "x": -414,
+        "y": 712
+      },
+      {
+        "index": 110,
+        "offsetA": 89096,
+        "offsetB": 89100,
+        "x": 712,
+        "y": 2
+      },
+      {
+        "index": 111,
+        "offsetA": 89100,
+        "offsetB": 89104,
+        "x": 2,
+        "y": -231
+      },
+      {
+        "index": 112,
+        "offsetA": 89104,
+        "offsetB": 89108,
+        "x": -231,
+        "y": 386
+      },
+      {
+        "index": 113,
+        "offsetA": 89108,
+        "offsetB": 89112,
+        "x": 386,
+        "y": -866
+      },
+      {
+        "index": 114,
+        "offsetA": 89112,
+        "offsetB": 89116,
+        "x": -866,
+        "y": 613
+      },
+      {
+        "index": 115,
+        "offsetA": 89116,
+        "offsetB": 89120,
+        "x": 613,
+        "y": -142
+      },
+      {
+        "index": 116,
+        "offsetA": 89120,
+        "offsetB": 89124,
+        "x": -142,
+        "y": 567
+      },
+      {
+        "index": 117,
+        "offsetA": 89124,
+        "offsetB": 89128,
+        "x": 567,
+        "y": -875
+      },
+      {
+        "index": 118,
+        "offsetA": 89128,
+        "offsetB": 89132,
+        "x": -875,
+        "y": -23
+      },
+      {
+        "index": 119,
+        "offsetA": 89132,
+        "offsetB": 89136,
+        "x": -23,
+        "y": 434
+      },
+      {
+        "index": 120,
+        "offsetA": 89136,
+        "offsetB": 89140,
+        "x": 434,
+        "y": -400
+      },
+      {
+        "index": 121,
+        "offsetA": 89140,
+        "offsetB": 89144,
+        "x": -400,
+        "y": 351
+      },
+      {
+        "index": 122,
+        "offsetA": 89144,
+        "offsetB": 89148,
+        "x": 351,
+        "y": -317
+      },
+      {
+        "index": 123,
+        "offsetA": 89148,
+        "offsetB": 89152,
+        "x": -317,
+        "y": 3
+      },
+      {
+        "index": 124,
+        "offsetA": 89152,
+        "offsetB": 89156,
+        "x": 3,
+        "y": 402
+      },
+      {
+        "index": 125,
+        "offsetA": 89156,
+        "offsetB": 89160,
+        "x": 402,
+        "y": -250
+      },
+      {
+        "index": 126,
+        "offsetA": 89160,
+        "offsetB": 89164,
+        "x": -250,
+        "y": -235
+      },
+      {
+        "index": 127,
+        "offsetA": 89164,
+        "offsetB": 89168,
+        "x": -235,
+        "y": 548
+      },
+      {
+        "index": 128,
+        "offsetA": 89168,
+        "offsetB": 89172,
+        "x": 548,
+        "y": -371
+      },
+      {
+        "index": 129,
+        "offsetA": 89172,
+        "offsetB": 89176,
+        "x": -371,
+        "y": -132
+      },
+      {
+        "index": 130,
+        "offsetA": 89176,
+        "offsetB": 89180,
+        "x": -132,
+        "y": -161
+      },
+      {
+        "index": 131,
+        "offsetA": 89180,
+        "offsetB": 89184,
+        "x": -161,
+        "y": 4805
+      },
+      {
+        "index": 132,
+        "offsetA": 89184,
+        "offsetB": 89188,
+        "x": 4805,
+        "y": -3951
+      },
+      {
+        "index": 133,
+        "offsetA": 89188,
+        "offsetB": 89192,
+        "x": -3951,
+        "y": 2300
+      },
+      {
+        "index": 134,
+        "offsetA": 89192,
+        "offsetB": 89196,
+        "x": 2300,
+        "y": -2569
+      },
+      {
+        "index": 135,
+        "offsetA": 89196,
+        "offsetB": 89200,
+        "x": -2569,
+        "y": -74
+      },
+      {
+        "index": 136,
+        "offsetA": 89200,
+        "offsetB": 89204,
+        "x": -74,
+        "y": 1
+      },
+      {
+        "index": 137,
+        "offsetA": 89204,
+        "offsetB": 89208,
+        "x": 1,
+        "y": 60
+      },
+      {
+        "index": 138,
+        "offsetA": 89208,
+        "offsetB": 89212,
+        "x": 60,
+        "y": 1935
+      },
+      {
+        "index": 139,
+        "offsetA": 89212,
+        "offsetB": 89216,
+        "x": 1935,
+        "y": 259
+      },
+      {
+        "index": 140,
+        "offsetA": 89216,
+        "offsetB": 89220,
+        "x": 259,
+        "y": -2762
+      },
+      {
+        "index": 141,
+        "offsetA": 89220,
+        "offsetB": 89224,
+        "x": -2762,
+        "y": 1023
+      },
+      {
+        "index": 142,
+        "offsetA": 89224,
+        "offsetB": 89228,
+        "x": 1023,
+        "y": -97
+      },
+      {
+        "index": 143,
+        "offsetA": 89228,
+        "offsetB": 89232,
+        "x": -97,
+        "y": 9
+      },
+      {
+        "index": 144,
+        "offsetA": 89232,
+        "offsetB": 89236,
+        "x": 9,
+        "y": -487
+      },
+      {
+        "index": 145,
+        "offsetA": 89236,
+        "offsetB": 89240,
+        "x": -487,
+        "y": -435
+      },
+      {
+        "index": 146,
+        "offsetA": 89240,
+        "offsetB": 89244,
+        "x": -435,
+        "y": 648
+      },
+      {
+        "index": 147,
+        "offsetA": 89244,
+        "offsetB": 89248,
+        "x": 648,
+        "y": 274
+      },
+      {
+        "index": 148,
+        "offsetA": 89248,
+        "offsetB": 89252,
+        "x": 274,
+        "y": 32
+      },
+      {
+        "index": 149,
+        "offsetA": 89252,
+        "offsetB": 89256,
+        "x": 32,
+        "y": -1143
+      },
+      {
+        "index": 150,
+        "offsetA": 89256,
+        "offsetB": 89260,
+        "x": -1143,
+        "y": 345
+      },
+      {
+        "index": 151,
+        "offsetA": 89260,
+        "offsetB": 89264,
+        "x": 345,
+        "y": 207
+      },
+      {
+        "index": 152,
+        "offsetA": 89264,
+        "offsetB": 89268,
+        "x": 207,
+        "y": 480
+      },
+      {
+        "index": 153,
+        "offsetA": 89268,
+        "offsetB": 89272,
+        "x": 480,
+        "y": 74
+      },
+      {
+        "index": 154,
+        "offsetA": 89272,
+        "offsetB": 89276,
+        "x": 74,
+        "y": 30
+      },
+      {
+        "index": 155,
+        "offsetA": 89276,
+        "offsetB": 89280,
+        "x": 30,
+        "y": -30
+      },
+      {
+        "index": 156,
+        "offsetA": 89280,
+        "offsetB": 89284,
+        "x": -30,
+        "y": -851
+      },
+      {
+        "index": 157,
+        "offsetA": 89284,
+        "offsetB": 89288,
+        "x": -851,
+        "y": -5
+      },
+      {
+        "index": 158,
+        "offsetA": 89288,
+        "offsetB": 89292,
+        "x": -5,
+        "y": 657
+      },
+      {
+        "index": 159,
+        "offsetA": 89292,
+        "offsetB": 89296,
+        "x": 657,
+        "y": -357
+      },
+      {
+        "index": 160,
+        "offsetA": 89296,
+        "offsetB": 89300,
+        "x": -357,
+        "y": -285
+      },
+      {
+        "index": 161,
+        "offsetA": 89300,
+        "offsetB": 89304,
+        "x": -285,
+        "y": 3282
+      },
+      {
+        "index": 162,
+        "offsetA": 89304,
+        "offsetB": 89308,
+        "x": 3282,
+        "y": -2373
+      },
+      {
+        "index": 163,
+        "offsetA": 89308,
+        "offsetB": 89312,
+        "x": -2373,
+        "y": -656
+      },
+      {
+        "index": 164,
+        "offsetA": 89312,
+        "offsetB": 89316,
+        "x": -656,
+        "y": 3523
+      },
+      {
+        "index": 165,
+        "offsetA": 89316,
+        "offsetB": 89320,
+        "x": 3523,
+        "y": -4041
+      },
+      {
+        "index": 166,
+        "offsetA": 89320,
+        "offsetB": 89324,
+        "x": -4041,
+        "y": 1628
+      },
+      {
+        "index": 167,
+        "offsetA": 89324,
+        "offsetB": 89328,
+        "x": 1628,
+        "y": 2676
+      },
+      {
+        "index": 168,
+        "offsetA": 89336,
+        "offsetB": 89340,
+        "x": -131,
+        "y": 129
+      },
+      {
+        "index": 169,
+        "offsetA": 89340,
+        "offsetB": 89344,
+        "x": 129,
+        "y": 112
+      },
+      {
+        "index": 170,
+        "offsetA": 89344,
+        "offsetB": 89348,
+        "x": 112,
+        "y": 4
+      },
+      {
+        "index": 171,
+        "offsetA": 89348,
+        "offsetB": 89352,
+        "x": 4,
+        "y": 217
+      },
+      {
+        "index": 172,
+        "offsetA": 89352,
+        "offsetB": 89356,
+        "x": 217,
+        "y": -221
+      },
+      {
+        "index": 173,
+        "offsetA": 89356,
+        "offsetB": 89360,
+        "x": -221,
+        "y": -2
+      },
+      {
+        "index": 174,
+        "offsetA": 89360,
+        "offsetB": 89364,
+        "x": -2,
+        "y": -109
+      },
+      {
+        "index": 175,
+        "offsetA": 89364,
+        "offsetB": 89368,
+        "x": -109,
+        "y": 1
+      },
+      {
+        "index": 176,
+        "offsetA": 89368,
+        "offsetB": 89372,
+        "x": 1,
+        "y": -1
+      },
+      {
+        "index": 177,
+        "offsetA": 89372,
+        "offsetB": 89376,
+        "x": -1,
+        "y": 110
+      },
+      {
+        "index": 178,
+        "offsetA": 89376,
+        "offsetB": 89380,
+        "x": 110,
+        "y": -50
+      },
+      {
+        "index": 179,
+        "offsetA": 89380,
+        "offsetB": 89384,
+        "x": -50,
+        "y": 184
+      },
+      {
+        "index": 180,
+        "offsetA": 89384,
+        "offsetB": 89388,
+        "x": 184,
+        "y": -244
+      },
+      {
+        "index": 181,
+        "offsetA": 89388,
+        "offsetB": 89392,
+        "x": -244,
+        "y": 1
+      },
+      {
+        "index": 182,
+        "offsetA": 89392,
+        "offsetB": 89396,
+        "x": 1,
+        "y": -19
+      },
+      {
+        "index": 183,
+        "offsetA": 89396,
+        "offsetB": 89400,
+        "x": -19,
+        "y": 407
+      },
+      {
+        "index": 184,
+        "offsetA": 89400,
+        "offsetB": 89404,
+        "x": 407,
+        "y": -148
+      },
+      {
+        "index": 185,
+        "offsetA": 89404,
+        "offsetB": 89408,
+        "x": -148,
+        "y": -241
+      },
+      {
+        "index": 186,
+        "offsetA": 89408,
+        "offsetB": 89412,
+        "x": -241,
+        "y": 110
+      },
+      {
+        "index": 187,
+        "offsetA": 89412,
+        "offsetB": 89416,
+        "x": 110,
+        "y": 1
+      },
+      {
+        "index": 188,
+        "offsetA": 89416,
+        "offsetB": 89420,
+        "x": 1,
+        "y": 129
+      },
+      {
+        "index": 189,
+        "offsetA": 89420,
+        "offsetB": 89424,
+        "x": 129,
+        "y": -240
+      },
+      {
+        "index": 190,
+        "offsetA": 89424,
+        "offsetB": 89428,
+        "x": -240,
+        "y": 223
+      },
+      {
+        "index": 191,
+        "offsetA": 89428,
+        "offsetB": 89432,
+        "x": 223,
+        "y": 338
+      },
+      {
+        "index": 192,
+        "offsetA": 89432,
+        "offsetB": 89436,
+        "x": 338,
+        "y": -5
+      },
+      {
+        "index": 193,
+        "offsetA": 89436,
+        "offsetB": 89440,
+        "x": -5,
+        "y": -54
+      },
+      {
+        "index": 194,
+        "offsetA": 89440,
+        "offsetB": 89444,
+        "x": -54,
+        "y": 370
+      },
+      {
+        "index": 195,
+        "offsetA": 89444,
+        "offsetB": 89448,
+        "x": 370,
+        "y": 83
+      },
+      {
+        "index": 196,
+        "offsetA": 89448,
+        "offsetB": 89452,
+        "x": 83,
+        "y": -479
+      },
+      {
+        "index": 197,
+        "offsetA": 89452,
+        "offsetB": 89456,
+        "x": -479,
+        "y": 479
+      },
+      {
+        "index": 198,
+        "offsetA": 89456,
+        "offsetB": 89460,
+        "x": 479,
+        "y": -597
+      },
+      {
+        "index": 199,
+        "offsetA": 89460,
+        "offsetB": 89464,
+        "x": -597,
+        "y": 439
+      },
+      {
+        "index": 200,
+        "offsetA": 89464,
+        "offsetB": 89468,
+        "x": 439,
+        "y": -881
+      },
+      {
+        "index": 201,
+        "offsetA": 89468,
+        "offsetB": 89472,
+        "x": -881,
+        "y": 751
+      },
+      {
+        "index": 202,
+        "offsetA": 89472,
+        "offsetB": 89476,
+        "x": 751,
+        "y": 1
+      },
+      {
+        "index": 203,
+        "offsetA": 89476,
+        "offsetB": 89480,
+        "x": 1,
+        "y": 1575
+      },
+      {
+        "index": 204,
+        "offsetA": 89480,
+        "offsetB": 89484,
+        "x": 1575,
+        "y": 1
+      },
+      {
+        "index": 205,
+        "offsetA": 89484,
+        "offsetB": 89488,
+        "x": 1,
+        "y": -1670
+      },
+      {
+        "index": 206,
+        "offsetA": 89488,
+        "offsetB": 89492,
+        "x": -1670,
+        "y": -17
+      },
+      {
+        "index": 207,
+        "offsetA": 89492,
+        "offsetB": 89496,
+        "x": -17,
+        "y": -599
+      },
+      {
+        "index": 208,
+        "offsetA": 89496,
+        "offsetB": 89500,
+        "x": -599,
+        "y": 677
+      },
+      {
+        "index": 209,
+        "offsetA": 89500,
+        "offsetB": 89504,
+        "x": 677,
+        "y": -356
+      },
+      {
+        "index": 210,
+        "offsetA": 89504,
+        "offsetB": 89508,
+        "x": -356,
+        "y": 117
+      },
+      {
+        "index": 211,
+        "offsetA": 89508,
+        "offsetB": 89512,
+        "x": 117,
+        "y": 125
+      },
+      {
+        "index": 212,
+        "offsetA": 89512,
+        "offsetB": 89516,
+        "x": 125,
+        "y": 2429
+      },
+      {
+        "index": 213,
+        "offsetA": 89516,
+        "offsetB": 89520,
+        "x": 2429,
+        "y": -3015
+      },
+      {
+        "index": 214,
+        "offsetA": 89520,
+        "offsetB": 89524,
+        "x": -3015,
+        "y": 1
+      },
+      {
+        "index": 215,
+        "offsetA": 89524,
+        "offsetB": 89528,
+        "x": 1,
+        "y": 103
+      },
+      {
+        "index": 216,
+        "offsetA": 89528,
+        "offsetB": 89532,
+        "x": 103,
+        "y": 2777
+      },
+      {
+        "index": 217,
+        "offsetA": 89532,
+        "offsetB": 89536,
+        "x": 2777,
+        "y": -1617
+      },
+      {
+        "index": 218,
+        "offsetA": 89536,
+        "offsetB": 89540,
+        "x": -1617,
+        "y": 483
+      },
+      {
+        "index": 219,
+        "offsetA": 89540,
+        "offsetB": 89544,
+        "x": 483,
+        "y": 5
+      },
+      {
+        "index": 220,
+        "offsetA": 89544,
+        "offsetB": 89548,
+        "x": 5,
+        "y": -1590
+      },
+      {
+        "index": 221,
+        "offsetA": 89548,
+        "offsetB": 89552,
+        "x": -1590,
+        "y": 631
+      },
+      {
+        "index": 222,
+        "offsetA": 89552,
+        "offsetB": 89556,
+        "x": 631,
+        "y": -161
+      },
+      {
+        "index": 223,
+        "offsetA": 89556,
+        "offsetB": 89560,
+        "x": -161,
+        "y": 347
+      },
+      {
+        "index": 224,
+        "offsetA": 89560,
+        "offsetB": 89564,
+        "x": 347,
+        "y": 979
+      },
+      {
+        "index": 225,
+        "offsetA": 89564,
+        "offsetB": 89568,
+        "x": 979,
+        "y": -2040
+      },
+      {
+        "index": 226,
+        "offsetA": 89568,
+        "offsetB": 89572,
+        "x": -2040,
+        "y": 737
+      },
+      {
+        "index": 227,
+        "offsetA": 89572,
+        "offsetB": 89576,
+        "x": 737,
+        "y": 1211
+      },
+      {
+        "index": 228,
+        "offsetA": 89576,
+        "offsetB": 89580,
+        "x": 1211,
+        "y": -78
+      },
+      {
+        "index": 229,
+        "offsetA": 89580,
+        "offsetB": 89584,
+        "x": -78,
+        "y": 335
+      },
+      {
+        "index": 230,
+        "offsetA": 89584,
+        "offsetB": 89588,
+        "x": 335,
+        "y": -1979
+      },
+      {
+        "index": 231,
+        "offsetA": 89588,
+        "offsetB": 89592,
+        "x": -1979,
+        "y": 5813
+      },
+      {
+        "index": 232,
+        "offsetA": 89592,
+        "offsetB": 89596,
+        "x": 5813,
+        "y": -367
+      },
+      {
+        "index": 233,
+        "offsetA": 89604,
+        "offsetB": 89608,
+        "x": 2147,
+        "y": -347
+      },
+      {
+        "index": 234,
+        "offsetA": 89608,
+        "offsetB": 89612,
+        "x": -347,
+        "y": -1899
+      },
+      {
+        "index": 235,
+        "offsetA": 89612,
+        "offsetB": 89616,
+        "x": -1899,
+        "y": -6
+      },
+      {
+        "index": 236,
+        "offsetA": 89616,
+        "offsetB": 89620,
+        "x": -6,
+        "y": 11
+      },
+      {
+        "index": 237,
+        "offsetA": 89620,
+        "offsetB": 89624,
+        "x": 11,
+        "y": -3
+      },
+      {
+        "index": 238,
+        "offsetA": 89624,
+        "offsetB": 89628,
+        "x": -3,
+        "y": 866
+      },
+      {
+        "index": 239,
+        "offsetA": 89628,
+        "offsetB": 89632,
+        "x": 866,
+        "y": -724
+      },
+      {
+        "index": 240,
+        "offsetA": 89632,
+        "offsetB": 89636,
+        "x": -724,
+        "y": -57
+      },
+      {
+        "index": 241,
+        "offsetA": 89636,
+        "offsetB": 89640,
+        "x": -57,
+        "y": 381
+      },
+      {
+        "index": 242,
+        "offsetA": 89640,
+        "offsetB": 89644,
+        "x": 381,
+        "y": -550
+      },
+      {
+        "index": 243,
+        "offsetA": 89644,
+        "offsetB": 89648,
+        "x": -550,
+        "y": 1507
+      },
+      {
+        "index": 244,
+        "offsetA": 89648,
+        "offsetB": 89652,
+        "x": 1507,
+        "y": -748
+      },
+      {
+        "index": 245,
+        "offsetA": 89652,
+        "offsetB": 89656,
+        "x": -748,
+        "y": 1682
+      },
+      {
+        "index": 246,
+        "offsetA": 89656,
+        "offsetB": 89660,
+        "x": 1682,
+        "y": -1415
+      },
+      {
+        "index": 247,
+        "offsetA": 89660,
+        "offsetB": 89664,
+        "x": -1415,
+        "y": 1
+      },
+      {
+        "index": 248,
+        "offsetA": 89664,
+        "offsetB": 89668,
+        "x": 1,
+        "y": -112
+      },
+      {
+        "index": 249,
+        "offsetA": 89668,
+        "offsetB": 89672,
+        "x": -112,
+        "y": 751
+      },
+      {
+        "index": 250,
+        "offsetA": 89672,
+        "offsetB": 89676,
+        "x": 751,
+        "y": -1043
+      },
+      {
+        "index": 251,
+        "offsetA": 89676,
+        "offsetB": 89680,
+        "x": -1043,
+        "y": 1
+      },
+      {
+        "index": 252,
+        "offsetA": 89680,
+        "offsetB": 89684,
+        "x": 1,
+        "y": -421
+      },
+      {
+        "index": 253,
+        "offsetA": 89684,
+        "offsetB": 89688,
+        "x": -421,
+        "y": 1975
+      },
+      {
+        "index": 254,
+        "offsetA": 89688,
+        "offsetB": 89692,
+        "x": 1975,
+        "y": -2344
+      },
+      {
+        "index": 255,
+        "offsetA": 89692,
+        "offsetB": 89696,
+        "x": -2344,
+        "y": 897
+      }
+    ]
+  }
+}
