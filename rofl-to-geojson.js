@@ -1753,6 +1753,527 @@ function makeStructureDump(payload, geometry, post) {
   };
 }
 
+function analyzeI32XYStream(
+  payload,
+  start,
+  pairCount,
+  mode,
+  extent = DEFAULT_EXTENT,
+) {
+  const bytes = pairCount * 8;
+
+  if (start < 0 || start + bytes > payload.length) {
+    return null;
+  }
+
+  let x = 0;
+  let y = 0;
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  let inside = 0;
+  let near = 0;
+
+  const preview = [];
+
+  for (let i = 0; i < pairCount; i++) {
+    const a = payload.readInt32LE(start + i * 8);
+
+    const b = payload.readInt32LE(start + i * 8 + 4);
+
+    if (mode === "delta") {
+      x += a;
+      y += b;
+    } else {
+      x = a;
+      y = b;
+    }
+
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+
+    if (x >= 0 && x <= extent && y >= 0 && y <= extent) {
+      inside++;
+    }
+
+    if (x >= -4096 && x <= extent + 4096 && y >= -4096 && y <= extent + 4096) {
+      near++;
+    }
+
+    if (preview.length < 16) {
+      preview.push({
+        i,
+        raw: [a, b],
+        xy: [x, y],
+      });
+    }
+  }
+
+  const insideRatio = inside / pairCount;
+
+  const nearRatio = near / pairCount;
+
+  /*
+   * inside важнее, near позволяет поймать
+   * geometry с небольшим tile buffer.
+   */
+  const score = insideRatio * 100 + nearRatio * 25;
+
+  return {
+    start,
+    end: start + bytes,
+
+    mode,
+    pairCount,
+
+    score,
+
+    inside,
+    insideRatio,
+
+    near,
+    nearRatio,
+
+    bounds: {
+      minX,
+      minY,
+      maxX,
+      maxY,
+    },
+
+    final: [x, y],
+
+    preview,
+  };
+}
+
+function analyzeI16XYStream(
+  payload,
+  start,
+  pairCount,
+  mode,
+  extent = DEFAULT_EXTENT,
+) {
+  const bytes = pairCount * 4;
+
+  if (start < 0 || start + bytes > payload.length) {
+    return null;
+  }
+
+  let x = 0;
+  let y = 0;
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  let inside = 0;
+  let near = 0;
+
+  const preview = [];
+
+  for (let i = 0; i < pairCount; i++) {
+    const a = payload.readInt16LE(start + i * 4);
+
+    const b = payload.readInt16LE(start + i * 4 + 2);
+
+    if (mode === "delta") {
+      x += a;
+      y += b;
+    } else {
+      x = a;
+      y = b;
+    }
+
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+
+    if (x >= 0 && x <= extent && y >= 0 && y <= extent) {
+      inside++;
+    }
+
+    if (x >= -4096 && x <= extent + 4096 && y >= -4096 && y <= extent + 4096) {
+      near++;
+    }
+
+    if (preview.length < 16) {
+      preview.push({
+        i,
+        raw: [a, b],
+        xy: [x, y],
+      });
+    }
+  }
+
+  return {
+    start,
+    end: start + bytes,
+
+    mode,
+    pairCount,
+
+    score: (inside / pairCount) * 100 + (near / pairCount) * 25,
+
+    inside,
+    insideRatio: inside / pairCount,
+
+    near,
+    nearRatio: near / pairCount,
+
+    bounds: {
+      minX,
+      minY,
+      maxX,
+      maxY,
+    },
+
+    final: [x, y],
+
+    preview,
+  };
+}
+
+function scanCoordinateStreams(payload, start) {
+  /*
+   * Не brute-force'им весь payload с огромными
+   * массивами, как в старом column-scan.
+   *
+   * Проверяем короткое окно от каждого 4-byte
+   * offset. 128 пар достаточно для определения,
+   * похож ли участок на coordinates.
+   */
+
+  const PREVIEW_PAIRS = 128;
+
+  const candidates = [];
+
+  const end = payload.length;
+
+  for (let offset = start; offset < end; offset += 4) {
+    /*
+     * i32 absolute XY
+     */
+    if (offset + PREVIEW_PAIRS * 8 <= end) {
+      const absolute32 = analyzeI32XYStream(
+        payload,
+        offset,
+        PREVIEW_PAIRS,
+        "absolute",
+      );
+
+      if (absolute32 && absolute32.score >= 75) {
+        candidates.push({
+          kind: "i32-interleaved-absolute",
+
+          ...absolute32,
+        });
+      }
+
+      const delta32 = analyzeI32XYStream(
+        payload,
+        offset,
+        PREVIEW_PAIRS,
+        "delta",
+      );
+
+      if (delta32 && delta32.score >= 75) {
+        candidates.push({
+          kind: "i32-interleaved-delta",
+
+          ...delta32,
+        });
+      }
+    }
+
+    /*
+     * i16 absolute/delta XY.
+     */
+    if (offset + PREVIEW_PAIRS * 4 <= end) {
+      const absolute16 = analyzeI16XYStream(
+        payload,
+        offset,
+        PREVIEW_PAIRS,
+        "absolute",
+      );
+
+      if (absolute16 && absolute16.score >= 75) {
+        candidates.push({
+          kind: "i16-interleaved-absolute",
+
+          ...absolute16,
+        });
+      }
+
+      const delta16 = analyzeI16XYStream(
+        payload,
+        offset,
+        PREVIEW_PAIRS,
+        "delta",
+      );
+
+      if (delta16 && delta16.score >= 75) {
+        candidates.push({
+          kind: "i16-interleaved-delta",
+
+          ...delta16,
+        });
+      }
+    }
+  }
+
+  /*
+   * Соседние offsets часто описывают фактически
+   * один и тот же stream. Сначала сортируем по score.
+   */
+  candidates.sort((a, b) => b.score - a.score || a.start - b.start);
+
+  const selected = [];
+
+  for (const candidate of candidates) {
+    /*
+     * Не возвращаем десятки практически
+     * одинаковых кандидатов ± несколько байт.
+     */
+    const duplicate = selected.some(
+      (existing) =>
+        existing.kind === candidate.kind &&
+        Math.abs(existing.start - candidate.start) < 32,
+    );
+
+    if (duplicate) {
+      continue;
+    }
+
+    selected.push(candidate);
+
+    if (selected.length >= 30) {
+      break;
+    }
+  }
+
+  return {
+    scanStart: start,
+    scanEnd: end,
+
+    previewPairs: PREVIEW_PAIRS,
+
+    candidateCount: selected.length,
+
+    candidates: selected,
+  };
+}
+
+function summarizeByteValues(payload, start, end) {
+  start = Math.max(0, start);
+
+  end = Math.min(payload.length, end);
+
+  const histogram = new Array(256).fill(0);
+
+  for (let i = start; i < end; i++) {
+    histogram[payload[i]]++;
+  }
+
+  const nonZero = histogram
+    .map((count, value) => ({
+      value,
+      count,
+    }))
+    .filter((item) => item.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    start,
+    end,
+    bytes: end - start,
+
+    uniqueByteValues: nonZero.length,
+
+    topValues: nonZero.slice(0, 32),
+  };
+}
+
+function findByteRuns(payload, start, end, minLength = 8) {
+  start = Math.max(0, start);
+
+  end = Math.min(payload.length, end);
+
+  const runs = [];
+
+  let i = start;
+
+  while (i < end) {
+    const value = payload[i];
+
+    let j = i + 1;
+
+    while (j < end && payload[j] === value) {
+      j++;
+    }
+
+    const length = j - i;
+
+    if (length >= minLength) {
+      runs.push({
+        start: i,
+        end: j,
+        length,
+        value,
+      });
+    }
+
+    i = j;
+  }
+
+  return runs;
+}
+
+function decodeVarintsInRange(payload, start, end, maxItems = 256) {
+  const values = [];
+
+  const state = {
+    i: start,
+  };
+
+  while (state.i < end && values.length < maxItems) {
+    const itemStart = state.i;
+
+    try {
+      const value = readVarint(payload, state);
+
+      if (state.i > end) {
+        break;
+      }
+
+      values.push({
+        offset: itemStart,
+
+        bytes: state.i - itemStart,
+
+        value,
+      });
+    } catch {
+      break;
+    }
+  }
+
+  return values;
+}
+
+function dumpTypedRows(payload, start, end) {
+  start = Math.max(0, start);
+
+  end = Math.min(payload.length, end);
+
+  /*
+   * Выравниваем вниз до 4 байт,
+   * чтобы параллельно видеть u8/i16/i32.
+   */
+  start -= start % 4;
+
+  const rows = [];
+
+  for (let offset = start; offset + 4 <= end; offset += 4) {
+    rows.push({
+      offset,
+
+      hex: "0x" + offset.toString(16).padStart(6, "0"),
+
+      bytes: Array.from(payload.subarray(offset, offset + 4)),
+
+      hexBytes: Array.from(payload.subarray(offset, offset + 4))
+        .map((v) => v.toString(16).padStart(2, "0"))
+        .join(" "),
+
+      u8: [
+        payload[offset],
+        payload[offset + 1],
+        payload[offset + 2],
+        payload[offset + 3],
+      ],
+
+      i8: [
+        payload.readInt8(offset),
+        payload.readInt8(offset + 1),
+        payload.readInt8(offset + 2),
+        payload.readInt8(offset + 3),
+      ],
+
+      u16: [payload.readUInt16LE(offset), payload.readUInt16LE(offset + 2)],
+
+      i16: [payload.readInt16LE(offset), payload.readInt16LE(offset + 2)],
+
+      u32: payload.readUInt32LE(offset),
+
+      i32: payload.readInt32LE(offset),
+    });
+  }
+
+  return rows;
+}
+
+function scanTailStructure(payload, start) {
+  const end = payload.length;
+
+  /*
+   * Делаем несколько окон, чтобы JSON не раздувался.
+   */
+  const windows = [];
+
+  const WINDOW = 2048;
+
+  for (let offset = start; offset < end; offset += WINDOW) {
+    const windowEnd = Math.min(end, offset + WINDOW);
+
+    windows.push({
+      start: offset,
+
+      end: windowEnd,
+
+      summary: summarizeByteValues(payload, offset, windowEnd),
+
+      runs: findByteRuns(payload, offset, windowEnd, 8).slice(0, 64),
+
+      /*
+       * Первые 256 байт каждого окна
+       * смотрим подробно.
+       */
+      rows: dumpTypedRows(payload, offset, Math.min(windowEnd, offset + 256)),
+
+      /*
+       * И отдельно пробуем обычный protobuf-style varint.
+       * Это не утверждение, а просто проверка.
+       */
+      varints: decodeVarintsInRange(
+        payload,
+        offset,
+        Math.min(windowEnd, offset + 512),
+        128,
+      ),
+    });
+  }
+
+  return {
+    start,
+    end,
+    bytes: end - start,
+
+    wholeSummary: summarizeByteValues(payload, start, end),
+
+    longRuns: findByteRuns(payload, start, end, 16).slice(0, 256),
+
+    windows,
+  };
+}
+
 function main() {
   const args = process.argv.slice(2);
 
@@ -1761,7 +2282,7 @@ function main() {
   if (!input) {
     die(
       "usage: node rofl-to-geojson.js tile.vt " +
-        "[--mode=features|delta-columns|geometry-info|post-dump|column-scan|structure-dump|dump] " +
+        "[--mode=features|delta-columns|geometry-info|post-dump|column-scan|structure-dump|stream-scan|tail-scan|dump] " +
         "[--layer=N|name] " +
         "[--out=file.json]",
     );
@@ -1778,6 +2299,8 @@ function main() {
     "post-dump",
     "column-scan",
     "structure-dump",
+    "stream-scan",
+    "tail-scan",
     "dump",
   ];
 
@@ -2054,6 +2577,140 @@ function main() {
         },
 
         "Structure dump written",
+      );
+
+      return;
+    }
+
+    if (mode === "stream-scan") {
+      /*
+       * Начинаем не с geometry.end=40132,
+       * потому что там лежит известный огромный
+       * zero block.
+       *
+       * Нас интересует первая реальная область
+       * после него.
+       */
+      const scanStart = post.zeroBlock.end;
+
+      const scan = scanCoordinateStreams(layer.payload, scanStart);
+
+      writeJson(
+        outputArg,
+
+        {
+          layer: layer.name,
+
+          roflVersion: rofl.version,
+
+          schemaCount: rofl.schemaCount,
+
+          knownGeometry: {
+            count: geometry.count,
+
+            start: geometry.xStart,
+
+            end: geometry.end,
+
+            bounds: {
+              minX: xr.min,
+
+              minY: yr.min,
+
+              maxX: xr.max,
+
+              maxY: yr.max,
+            },
+          },
+
+          structuralOffsets: {
+            geometryEnd: geometry.end,
+
+            zeroBlockEnd: post.zeroBlock.end,
+
+            oldBinaryGuessStart: post.binaryColumn.start,
+
+            oldBinaryGuessEnd:
+              post.binaryColumn.start !== null
+                ? post.binaryColumn.start + post.binaryColumn.length
+                : null,
+          },
+
+          streamScan: scan,
+        },
+
+        "Stream scan written",
+      );
+
+      return;
+    }
+
+    if (mode === "tail-scan") {
+      /*
+       * Начинаем после старой 0/1 области.
+       *
+       * Для текущего sample:
+       *
+       * 79584 + 8544 = 88128
+       */
+      const tailStart =
+        post.binaryColumn.start !== null
+          ? post.binaryColumn.start + post.binaryColumn.length
+          : post.zeroBlock.end;
+
+      const scan = scanTailStructure(layer.payload, tailStart);
+
+      writeJson(
+        outputArg,
+
+        {
+          layer: layer.name,
+
+          roflVersion: rofl.version,
+
+          schemaCount: rofl.schemaCount,
+
+          knownGeometry: {
+            count: geometry.count,
+
+            xStart: geometry.xStart,
+
+            yStart: geometry.yStart,
+
+            end: geometry.end,
+
+            bounds: {
+              minX: xr.min,
+
+              minY: yr.min,
+
+              maxX: xr.max,
+
+              maxY: yr.max,
+            },
+          },
+
+          structuralOffsets: {
+            geometryEnd: geometry.end,
+
+            zeroBlockEnd: post.zeroBlock.end,
+
+            binaryStart: post.binaryColumn.start,
+
+            binaryLength: post.binaryColumn.length,
+
+            binaryEnd:
+              post.binaryColumn.start !== null
+                ? post.binaryColumn.start + post.binaryColumn.length
+                : null,
+
+            tailStart,
+          },
+
+          tail: scan,
+        },
+
+        "Tail scan written",
       );
 
       return;
