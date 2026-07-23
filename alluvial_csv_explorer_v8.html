@@ -1,0 +1,1826 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Alluvial CSV Explorer</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #fff;
+      --text: #17191c;
+      --muted: #747b84;
+      --border: #dfe3e8;
+      --accent: #15181c;
+      --shadow: 0 8px 30px rgba(20,30,40,.06);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body { padding: 18px; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 16px;
+      height: calc(100vh - 36px);
+      min-height: 720px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      padding: 16px;
+      overflow: auto;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 135px;
+      resize: vertical;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      outline: none;
+    }
+
+    textarea:focus { border-color: #9aa3ad; }
+
+    button, input, select { font: inherit; }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 9px;
+      padding: 7px 9px;
+      cursor: pointer;
+    }
+
+    button:hover { background: #f2f4f6; }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .hint, .stats {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    /* fields */
+    .fields {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .field-card {
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .field-card.dragging {
+      opacity: .45;
+      border-style: dashed;
+    }
+
+    .field-main {
+      display: grid;
+      grid-template-columns: 18px 20px minmax(0,1fr) auto;
+      gap: 6px;
+      align-items: center;
+      padding: 6px 7px;
+    }
+
+    .drag-handle {
+      color: #a4abb3;
+      cursor: grab;
+      user-select: none;
+      text-align: center;
+    }
+
+    .drag-handle:active { cursor: grabbing; }
+
+    .field-name {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 4px 5px;
+      border-radius: 6px;
+      outline: none;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .field-name:hover { border-color: var(--border); }
+    .field-name:focus { background: #fff; border-color: #9da6b0; }
+
+    .field-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .uniq {
+      color: var(--muted);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .filter-toggle {
+      padding: 3px 6px;
+      font-size: 10px;
+    }
+
+    .filter-body {
+      display: none;
+      padding: 7px;
+      border-top: 1px solid var(--border);
+      background: #fafbfc;
+      max-height: 230px;
+      overflow: auto;
+    }
+
+    .field-card.open .filter-body { display: block; }
+
+    .filters-disabled .value-row > input[type="checkbox"],
+    .filters-disabled .filter-tools button {
+      opacity: .35;
+      pointer-events: none;
+    }
+
+    .filter-tools {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 6px;
+    }
+
+    .filter-tools button {
+      padding: 3px 6px;
+      font-size: 10px;
+    }
+
+    .value-row {
+      display: grid;
+      grid-template-columns: 18px 26px minmax(0,1fr) auto;
+      gap: 6px;
+      align-items: center;
+      padding: 3px 1px;
+      font-size: 11px;
+    }
+
+    .value-row input[type=color] {
+      width: 24px;
+      height: 20px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .value-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+
+    .value-name-input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 3px 4px;
+      border-radius: 5px;
+      font-size: 11px;
+      outline: none;
+    }
+
+    .value-name-input:hover { border-color: var(--border); }
+    .value-name-input:focus { border-color: #9da6b0; background: #fff; }
+
+    .value-count {
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    /* settings */
+    .setting {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) 86px;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0;
+      font-size: 11px;
+    }
+
+    .setting input[type=range] { width: 100%; }
+
+    .number {
+      width: 72px;
+      padding: 5px 6px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+    }
+
+    .check-setting {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 7px 0;
+      font-size: 11px;
+    }
+
+    /* chart */
+    .chart-panel {
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .toolbar {
+      position: absolute;
+      z-index: 5;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 6px;
+    }
+
+    #chart {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .empty {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .axis-label {
+      font-size: 12px;
+      font-weight: 700;
+      fill: #20242a;
+    }
+
+    .node-label {
+      font-size: var(--label-font-size, 11px);
+      fill: var(--label-color, #20242a);
+      pointer-events: auto;
+      cursor: text;
+      user-select: none;
+    }
+
+    .node-value {
+      font-size: calc(var(--label-font-size, 11px) - 1px);
+      fill: var(--label-color, #7b8188);
+      opacity: .68;
+      pointer-events: none;
+    }
+
+    .node rect {
+      cursor: ns-resize;
+      stroke: rgba(0,0,0,.18);
+      stroke-width: .4;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .node.dragging-node rect {
+      stroke: #111;
+      stroke-width: 3px;
+      filter: drop-shadow(0 2px 5px rgba(0,0,0,.22));
+    }
+
+    .node.dragging-node .node-label {
+      font-weight: 750;
+    }
+
+    .link {
+      stroke: none;
+      fill-opacity: var(--link-opacity, .50);
+      mix-blend-mode: var(--link-blend-mode, multiply);
+      cursor: pointer;
+      transition: fill-opacity .08s linear;
+    }
+
+    .link.dimmed { fill-opacity: .045; }
+    .link.highlighted { fill-opacity: .18; }
+    .node.dimmed { opacity: .15; }
+    .node.highlighted { opacity: 1; }
+
+    .hover-route {
+      pointer-events: none;
+      stroke: none;
+      fill-opacity: .98;
+      mix-blend-mode: normal;
+    }
+
+    .tooltip {
+      position: fixed;
+      z-index: 100;
+      pointer-events: none;
+      max-width: 360px;
+      padding: 9px 10px;
+      background: rgba(20,22,25,.94);
+      color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+      font-size: 11px;
+      line-height: 1.45;
+      display: none;
+    }
+
+    .tooltip b { display: block; margin-bottom: 3px; }
+    .tooltip .muted { opacity: .7; }
+
+    .inline-node-editor {
+      position: fixed;
+      z-index: 200;
+      min-width: 120px;
+      max-width: 320px;
+      padding: 6px 8px;
+      border: 1px solid #87919c;
+      border-radius: 7px;
+      background: #fff;
+      color: #17191c;
+      box-shadow: 0 8px 24px rgba(0,0,0,.16);
+      outline: none;
+      font: 600 var(--label-font-size, 11px)/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 8px; }
+      .app { grid-template-columns: 1fr; height: auto; }
+      .chart-panel { height: 70vh; min-height: 560px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="panel sidebar">
+    <h1>Alluvial CSV Explorer</h1>
+    <p class="subtitle">CSV/TSV → интерактивная alluvial diagram. Поля можно таскать, переименовывать и фильтровать.</p>
+
+    <div class="section" style="margin-top:0;padding-top:0;border-top:0">
+      <div class="section-title">
+        <span>Input</span>
+        <span id="parseInfo"></span>
+      </div>
+      <textarea id="input" spellcheck="false" placeholder="Вставь сюда таблицу из Excel или CSV…"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button id="pasteBtn" class="primary">Paste</button>
+        <button id="sampleBtn">Пример</button>
+        <button id="clearBtn">Очистить</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span>Поля / оси</span>
+        <button id="smartBtn">Auto</button>
+      </div>
+      <div class="hint" style="margin-bottom:7px">☷ — порядок осей. Имя можно редактировать. ▾ — значения, фильтр и цвета.</div>
+      <div id="fields" class="fields"></div>
+      <div id="noFields" class="hint">После вставки данных здесь появятся колонки.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span>Фильтрация</span></div>
+      <label class="check-setting">
+        <input type="checkbox" id="enableFilters">
+        Включить фильтрацию по значениям
+      </label>
+      <div class="hint">По умолчанию фильтрация отключена, все значения участвуют в чарте.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span>Layout</span></div>
+
+      <div class="setting">
+        <label for="nodePadding">Padding между nodes</label>
+        <input id="nodePaddingNum" class="number" type="number" min="0" max="80" step="1" value="10">
+      </div>
+      <input id="nodePadding" type="range" min="0" max="80" step="1" value="10" style="width:100%">
+
+      <div class="setting">
+        <label for="nodeWidth">Ширина nodes</label>
+        <input id="nodeWidthNum" class="number" type="number" min="2" max="60" step="1" value="10">
+      </div>
+      <input id="nodeWidth" type="range" min="2" max="60" step="1" value="10" style="width:100%">
+
+      <label class="check-setting">
+        <input type="checkbox" id="autoOrder" checked>
+        Автоматически минимизировать пересечения
+      </label>
+
+      <label class="check-setting">
+        <input type="checkbox" id="showCounts" checked>
+        Показывать количество
+      </label>
+
+      <label class="check-setting">
+        <input type="checkbox" id="gradientLinks" checked>
+        Градиент source → target
+      </label>
+
+      <label class="check-setting">
+        <input type="checkbox" id="multiplyBlend" checked>
+        Multiply для flow
+      </label>
+
+      <label class="check-setting">
+        <input type="checkbox" id="colorizeNodes">
+        Colorize nodes
+      </label>
+
+      <div class="setting">
+        <label for="linkOpacity">Прозрачность flow</label>
+        <input id="linkOpacityNum" class="number" type="number" min="0.05" max="1" step="0.05" value="0.35">
+      </div>
+      <input id="linkOpacity" type="range" min="0.05" max="1" step="0.05" value="0.35" style="width:100%">
+
+      <div class="setting">
+        <label for="chartPadding">Padding чарта</label>
+        <input id="chartPaddingNum" class="number" type="number" min="20" max="220" step="5" value="90">
+      </div>
+      <input id="chartPadding" type="range" min="20" max="220" step="5" value="90" style="width:100%">
+
+      <div class="setting">
+        <label for="labelFontSize">Размер подписей</label>
+        <input id="labelFontSizeNum" class="number" type="number" min="8" max="32" step="1" value="11">
+      </div>
+      <input id="labelFontSize" type="range" min="8" max="32" step="1" value="11" style="width:100%">
+
+      <div class="setting">
+        <label for="labelColor">Цвет подписей</label>
+        <input id="labelColor" type="color" value="#20242a" style="width:72px;height:30px;padding:0;border:0;background:transparent">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span>Dataset</span></div>
+      <div id="stats" class="stats">Нет данных</div>
+    </div>
+  </aside>
+
+  <main class="panel chart-panel">
+    <div class="toolbar">
+      <button id="resetOrderBtn">Auto order</button>
+      <button id="fitBtn">Перерисовать</button>
+      <button id="downloadBtn">SVG</button>
+    </div>
+    <svg id="chart"></svg>
+    <div id="empty" class="empty">Вставь данные и выбери минимум 2 поля</div>
+  </main>
+</div>
+
+<div id="tooltip" class="tooltip"></div>
+
+<script>
+(() => {
+  const input = document.getElementById('input');
+  const fieldsEl = document.getElementById('fields');
+  const noFields = document.getElementById('noFields');
+  const statsEl = document.getElementById('stats');
+  const parseInfo = document.getElementById('parseInfo');
+  const emptyEl = document.getElementById('empty');
+  const tooltip = document.getElementById('tooltip');
+  const svg = d3.select('#chart');
+
+  let rows = [];
+  let columns = [];
+  let fieldOrder = [];
+  let selected = new Set();
+  let fieldAliases = new Map();
+  let filters = new Map();           // field -> Set(allowed values)
+  let valueColors = new Map();       // "field\0value" -> color
+  let valueAliases = new Map();      // "field\0value" -> display alias
+  let manualNodeOrder = new Map();   // field -> [values top -> bottom]
+  let openFilters = new Set();
+  let redrawTimer = null;
+  let currentDelimiter = '\t';
+  let inlineEditor = null;
+
+  const sample = `type_velo\treconstr_init\treconstr_velo\tstreet\tcompleted\tauthor\taccepted
+velodorozhka\tfalse\ttrue\tНукус\tfalse\tSTEP\ttrue
+velodorozhka\tfalse\ttrue\tНукус\tfalse\tSTEP\ttrue
+velodorozhka\tfalse\ttrue\tНукус\ttrue\tSTEP\ttrue
+velodorozhka\tfalse\tfalse\tНукус\tfalse\tSTEP\ttrue
+velodorozhka\ttrue\tfalse\tНукус\tfalse\tSTEP\ttrue
+velopolosa\tfalse\ttrue\tШота Руставели\ttrue\tSTEP\ttrue
+velopolosa\tfalse\ttrue\tШота Руставели\tfalse\tSTEP\tfalse`;
+
+  function detectDelimiter(text) {
+    const first = (text.split(/\r?\n/).find(x => x.trim()) || '');
+    const candidates = ['\t', ';', ','];
+    let best = '\t', bestCount = -1;
+    for (const d of candidates) {
+      const count = first.split(d).length - 1;
+      if (count > bestCount) { best = d; bestCount = count; }
+    }
+    return best;
+  }
+
+  function parseInput() {
+    const text = input.value.trim();
+    if (!text) {
+      rows = [];
+      columns = [];
+      fieldOrder = [];
+      selected.clear();
+      filters.clear();
+      renderFields();
+      render();
+      return;
+    }
+
+    try {
+      const delimiter = detectDelimiter(text);
+      currentDelimiter = delimiter;
+      const parsed = d3.dsvFormat(delimiter).parse(text);
+      const newColumns = parsed.columns || [];
+
+      rows = parsed.map((r, i) => {
+        const out = { __rowId: i };
+        for (const c of newColumns) {
+          const v = r[c];
+          out[c] = (v == null || String(v).trim() === '') ? '(empty)' : String(v).trim();
+        }
+        return out;
+      });
+
+      // A new CSV starts from a clean chart state.
+      // No axes are preselected and every field value is initially allowed.
+      columns = newColumns;
+      fieldOrder = [...newColumns];
+      selected.clear();
+      filters.clear();
+      manualNodeOrder.clear();
+
+      for (const c of columns) {
+        if (!fieldAliases.has(c)) fieldAliases.set(c, c);
+
+        const values = uniqueValues(c);
+        filters.set(c, new Set(values));
+
+        for (const v of values) ensureColor(c, v);
+      }
+
+      parseInfo.textContent = `${rows.length} × ${columns.length}`;
+      renderFields();
+      scheduleRender();
+    } catch (err) {
+      console.error(err);
+      parseInfo.textContent = 'Ошибка';
+    }
+  }
+
+  function suggestColumns(cols, data) {
+    const badName = /(wkt|geom|geometry|^id$|fid|uuid|guid|lat|lon|lng|x$|y$)/i;
+    return cols.map(c => {
+      const vals = data.slice(0, 5000).map(r => r[c]);
+      const unique = new Set(vals).size;
+      const ratio = vals.length ? unique / vals.length : 1;
+      let score = !badName.test(c) ? 4 : -4;
+      if (unique <= 12) score += 5;
+      else if (unique <= 30) score += 3;
+      else if (unique <= 80) score += 1;
+      if (ratio > .8) score -= 7;
+      return { c, score };
+    }).filter(x => x.score >= 3).map(x => x.c).slice(0, 7);
+  }
+
+  function uniqueValues(field) {
+    return [...new Set(rows.map(r => r[field]))].sort(d3.ascending);
+  }
+
+  function valueCounts(field) {
+    return d3.rollup(rows, v => v.length, d => d[field]);
+  }
+
+  function colorKey(field, value) {
+    return field + '\u0000' + value;
+  }
+
+  function ensureColor(field, value) {
+    const key = colorKey(field, value);
+    if (!valueColors.has(key)) {
+      // Stable deterministic color by value+field.
+      let h = 2166136261;
+      const s = key;
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      const idx = Math.abs(h) % d3.schemeTableau10.length;
+      valueColors.set(key, d3.schemeTableau10[idx]);
+    }
+    return valueColors.get(key);
+  }
+
+  function getColor(field, value) {
+    return ensureColor(field, value);
+  }
+
+  function getValueAlias(field, value) {
+    return valueAliases.get(colorKey(field, value)) || value;
+  }
+
+  function syncInputFromRows() {
+    if (!columns.length) return;
+    const clean = rows.map(r => {
+      const out = {};
+      for (const c of columns) out[c] = r[c];
+      return out;
+    });
+    input.value = d3.dsvFormat(currentDelimiter).format(clean, columns);
+  }
+
+  function renameValueInDatabase(field, oldValue, newValue) {
+    newValue = String(newValue ?? '').trim();
+    if (!newValue || newValue === oldValue) return false;
+
+    // Replace the actual parsed values in every matching row.
+    for (const r of rows) {
+      if (r[field] === oldValue) r[field] = newValue;
+    }
+
+    // Merge/update filter state.
+    const allowed = filters.get(field) || new Set();
+    const oldAllowed = allowed.has(oldValue);
+    allowed.delete(oldValue);
+    if (oldAllowed) allowed.add(newValue);
+    filters.set(field, allowed);
+
+    // Carry color forward unless the destination already has an explicit color.
+    const oldColorKey = colorKey(field, oldValue);
+    const newColorKey = colorKey(field, newValue);
+    if (!valueColors.has(newColorKey) && valueColors.has(oldColorKey)) {
+      valueColors.set(newColorKey, valueColors.get(oldColorKey));
+    }
+
+    // Remove display-only aliases because the actual DB value now contains the edit.
+    valueAliases.delete(oldColorKey);
+    valueAliases.delete(newColorKey);
+
+    // Keep manual order valid.
+    const order = manualNodeOrder.get(field);
+    if (order) {
+      manualNodeOrder.set(
+        field,
+        [...new Set(order.map(v => v === oldValue ? newValue : v))]
+      );
+    }
+
+    syncInputFromRows();
+    renderFields();
+    render();
+    return true;
+  }
+
+  function closeInlineEditor(commit = false) {
+    if (!inlineEditor) return;
+    const { inputEl, field, oldValue } = inlineEditor;
+    const newValue = inputEl.value;
+    inputEl.remove();
+    inlineEditor = null;
+    if (commit) renameValueInDatabase(field, oldValue, newValue);
+  }
+
+  function openInlineNodeEditor(event, d) {
+    if (dragState) return;
+    closeInlineEditor(false);
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const inputEl = document.createElement('input');
+    inputEl.className = 'inline-node-editor';
+    inputEl.value = d.name;
+    inputEl.style.setProperty('--label-font-size', `${+document.getElementById('labelFontSize').value}px`);
+
+    const box = event.currentTarget.getBoundingClientRect();
+    inputEl.style.left = `${Math.max(8, Math.min(window.innerWidth - 330, box.left - 6))}px`;
+    inputEl.style.top = `${Math.max(8, box.top - 7)}px`;
+
+    document.body.appendChild(inputEl);
+    inlineEditor = { inputEl, field: d.field, oldValue: d.name };
+
+    inputEl.focus();
+    inputEl.select();
+
+    inputEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        closeInlineEditor(true);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeInlineEditor(false);
+      }
+    });
+
+    inputEl.addEventListener('blur', () => {
+      if (inlineEditor?.inputEl === inputEl) closeInlineEditor(true);
+    }, { once: true });
+  }
+
+  function selectedColumns() {
+    return fieldOrder.filter(c => selected.has(c));
+  }
+
+  function filteredRows() {
+    if (!rows.length) return [];
+
+    // Value checkboxes are only applied when filtering is explicitly enabled.
+    const enabled = document.getElementById('enableFilters')?.checked;
+    if (!enabled) return rows;
+
+    return rows.filter(r => {
+      for (const c of columns) {
+        const allowed = filters.get(c);
+        if (allowed && !allowed.has(r[c])) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderFields() {
+    fieldsEl.innerHTML = '';
+    noFields.style.display = columns.length ? 'none' : 'block';
+    fieldsEl.classList.toggle('filters-disabled', !document.getElementById('enableFilters')?.checked);
+
+    for (const col of fieldOrder) {
+      const card = document.createElement('div');
+      card.className = 'field-card' + (openFilters.has(col) ? ' open' : '');
+      card.draggable = true;
+      card.dataset.field = col;
+
+      const main = document.createElement('div');
+      main.className = 'field-main';
+
+      const handle = document.createElement('div');
+      handle.className = 'drag-handle';
+      handle.textContent = '☷';
+      handle.title = 'Перетащить поле';
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = selected.has(col);
+      cb.addEventListener('change', () => {
+        cb.checked ? selected.add(col) : selected.delete(col);
+        scheduleRender();
+        updateStats();
+      });
+
+      const alias = document.createElement('input');
+      alias.className = 'field-name';
+      alias.value = fieldAliases.get(col) || col;
+      alias.title = `Исходное поле: ${col}`;
+      alias.addEventListener('input', () => {
+        fieldAliases.set(col, alias.value || col);
+        scheduleRender();
+      });
+      // Don't accidentally start dragging while editing.
+      alias.addEventListener('pointerdown', e => e.stopPropagation());
+
+      const actions = document.createElement('div');
+      actions.className = 'field-actions';
+
+      const uniq = document.createElement('span');
+      uniq.className = 'uniq';
+      uniq.textContent = `${uniqueValues(col).length}`;
+
+      const filterBtn = document.createElement('button');
+      filterBtn.className = 'filter-toggle';
+      filterBtn.textContent = openFilters.has(col) ? '▴' : '▾';
+      filterBtn.title = 'Фильтр и цвета';
+      filterBtn.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        openFilters.has(col) ? openFilters.delete(col) : openFilters.add(col);
+        renderFields();
+      });
+
+      actions.append(uniq, filterBtn);
+      main.append(handle, cb, alias, actions);
+
+      const body = document.createElement('div');
+      body.className = 'filter-body';
+
+      const tools = document.createElement('div');
+      tools.className = 'filter-tools';
+
+      const allBtn = document.createElement('button');
+      allBtn.textContent = 'Все';
+      allBtn.onclick = () => {
+        filters.set(col, new Set(uniqueValues(col)));
+        renderFields(); scheduleRender();
+      };
+
+      const noneBtn = document.createElement('button');
+      noneBtn.textContent = 'Ничего';
+      noneBtn.onclick = () => {
+        filters.set(col, new Set());
+        renderFields(); scheduleRender();
+      };
+
+      const invertBtn = document.createElement('button');
+      invertBtn.textContent = 'Инвертировать';
+      invertBtn.onclick = () => {
+        const current = filters.get(col) || new Set();
+        filters.set(col, new Set(uniqueValues(col).filter(v => !current.has(v))));
+        renderFields(); scheduleRender();
+      };
+
+      tools.append(allBtn, noneBtn, invertBtn);
+      body.appendChild(tools);
+
+      const counts = valueCounts(col);
+      const allowed = filters.get(col) || new Set();
+
+      for (const value of uniqueValues(col)) {
+        const vr = document.createElement('label');
+        vr.className = 'value-row';
+
+        const vcb = document.createElement('input');
+        vcb.type = 'checkbox';
+        vcb.checked = allowed.has(value);
+        vcb.addEventListener('change', () => {
+          const s = filters.get(col) || new Set();
+          vcb.checked ? s.add(value) : s.delete(value);
+          filters.set(col, s);
+          scheduleRender();
+          updateStats();
+        });
+
+        const color = document.createElement('input');
+        color.type = 'color';
+        color.value = getColor(col, value);
+        color.title = 'Цвет категории';
+        color.addEventListener('input', () => {
+          valueColors.set(colorKey(col, value), color.value);
+          scheduleRender();
+        });
+
+        const name = document.createElement('input');
+        name.className = 'value-name-input';
+        name.value = getValueAlias(col, value);
+        name.title = `Исходное значение: ${value}`;
+        name.addEventListener('input', () => {
+          const alias = name.value.trim();
+          if (alias && alias !== value) valueAliases.set(colorKey(col, value), alias);
+          else valueAliases.delete(colorKey(col, value));
+          scheduleRender();
+        });
+        name.addEventListener('pointerdown', e => e.stopPropagation());
+
+        const cnt = document.createElement('span');
+        cnt.className = 'value-count';
+        cnt.textContent = counts.get(value) || 0;
+
+        vr.append(vcb, color, name, cnt);
+        body.appendChild(vr);
+      }
+
+      card.append(main, body);
+      fieldsEl.appendChild(card);
+
+      // Drag/reorder fields.
+      card.addEventListener('dragstart', e => {
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', col);
+      });
+
+      card.addEventListener('dragend', () => card.classList.remove('dragging'));
+
+      card.addEventListener('dragover', e => {
+        e.preventDefault();
+        const dragging = fieldsEl.querySelector('.dragging');
+        if (!dragging || dragging === card) return;
+
+        const rect = card.getBoundingClientRect();
+        const after = e.clientY > rect.top + rect.height / 2;
+        fieldsEl.insertBefore(dragging, after ? card.nextSibling : card);
+      });
+
+      card.addEventListener('drop', e => {
+        e.preventDefault();
+        fieldOrder = [...fieldsEl.querySelectorAll('.field-card')].map(x => x.dataset.field);
+        scheduleRender();
+      });
+    }
+
+    updateStats();
+  }
+
+  function updateStats() {
+    const axes = selectedColumns();
+    const filtered = filteredRows();
+    const filtering = document.getElementById('enableFilters')?.checked;
+    statsEl.innerHTML = rows.length
+      ? `${rows.length.toLocaleString()} исходных строк<br>` +
+        `${filtering ? filtered.length.toLocaleString() + ' после фильтров<br>' : 'фильтрация выключена<br>'}` +
+        `${axes.length} выбранных осей`
+      : 'Нет данных';
+  }
+
+  function buildGraph(data, axes) {
+    const nodeMap = new Map();
+    const nodes = [];
+
+    function getNode(axisIndex, value) {
+      const field = axes[axisIndex];
+      const id = axisIndex + '\u0000' + value;
+      let n = nodeMap.get(id);
+      if (!n) {
+        n = {
+          id, name: value, axis: axisIndex, field,
+          rowIds: new Set(),
+          color: getColor(field, value)
+        };
+        nodeMap.set(id, n);
+        nodes.push(n);
+      }
+      return n;
+    }
+
+    const linkMap = new Map();
+
+    for (const r of data) {
+      for (let i = 0; i < axes.length - 1; i++) {
+        const a = getNode(i, r[axes[i]]);
+        const b = getNode(i + 1, r[axes[i + 1]]);
+        a.rowIds.add(r.__rowId);
+        b.rowIds.add(r.__rowId);
+
+        const key = a.id + '\u0001' + b.id;
+        let l = linkMap.get(key);
+        if (!l) {
+          l = { source: a.id, target: b.id, value: 0, rowIds: new Set() };
+          linkMap.set(key, l);
+        }
+        l.value += 1;
+        l.rowIds.add(r.__rowId);
+      }
+    }
+
+    return { nodes, links: [...linkMap.values()] };
+  }
+
+  // Barycentric ordering. This is deliberately separate from Sankey layout:
+  // we compute a stable category order per axis and feed that order to nodeSort.
+  function computeAutoOrder(data, axes) {
+    const values = axes.map(a => [...new Set(data.map(r => r[a]))]);
+    let orders = values.map(v => [...v]);
+
+    const positions = () => orders.map(arr => new Map(arr.map((v, i) => [v, i])));
+
+    for (let iter = 0; iter < 6; iter++) {
+      // left -> right
+      let pos = positions();
+      for (let ai = 1; ai < axes.length; ai++) {
+        const prev = axes[ai - 1], cur = axes[ai];
+        const grouped = d3.group(data, d => d[cur]);
+        orders[ai].sort((a, b) => {
+          const score = val => {
+            const rs = grouped.get(val) || [];
+            return d3.mean(rs, r => pos[ai - 1].get(r[prev])) ?? 0;
+          };
+          return d3.ascending(score(a), score(b)) || d3.ascending(a, b);
+        });
+      }
+
+      // right -> left
+      pos = positions();
+      for (let ai = axes.length - 2; ai >= 0; ai--) {
+        const next = axes[ai + 1], cur = axes[ai];
+        const grouped = d3.group(data, d => d[cur]);
+        orders[ai].sort((a, b) => {
+          const score = val => {
+            const rs = grouped.get(val) || [];
+            return d3.mean(rs, r => pos[ai + 1].get(r[next])) ?? 0;
+          };
+          return d3.ascending(score(a), score(b)) || d3.ascending(a, b);
+        });
+      }
+    }
+
+    return new Map(axes.map((a, i) => [a, orders[i]]));
+  }
+
+  function makeOrderIndex(axes, data) {
+    const auto = document.getElementById('autoOrder').checked;
+    const autoOrder = auto ? computeAutoOrder(data, axes) : new Map();
+    const index = new Map();
+
+    for (const field of axes) {
+      // Manual order wins after node drag. Auto fills the rest.
+      const manual = manualNodeOrder.get(field) || [];
+      const base = autoOrder.get(field) || uniqueValues(field);
+      const merged = [...manual.filter(v => base.includes(v)), ...base.filter(v => !manual.includes(v))];
+      index.set(field, new Map(merged.map((v, i) => [v, i])));
+    }
+    return index;
+  }
+
+  function ribbonPath(d) {
+    const x0 = d.source.x1;
+    const x1 = d.target.x0;
+    const y0t = d.y0 - d.width / 2;
+    const y0b = d.y0 + d.width / 2;
+    const y1t = d.y1 - d.width / 2;
+    const y1b = d.y1 + d.width / 2;
+    const c0 = x0 + (x1 - x0) * .50;
+    const c1 = x1 - (x1 - x0) * .50;
+    return [
+      `M${x0},${y0t}`,
+      `C${c0},${y0t} ${c1},${y1t} ${x1},${y1t}`,
+      `L${x1},${y1b}`,
+      `C${c1},${y1b} ${c0},${y0b} ${x0},${y0b}`,
+      'Z'
+    ].join(' ');
+  }
+
+  function render() {
+    updateStats();
+    svg.selectAll('*').remove();
+
+    const axes = selectedColumns();
+    const data = filteredRows();
+
+    if (!data.length || axes.length < 2) {
+      emptyEl.style.display = 'grid';
+      emptyEl.textContent = !data.length && rows.length
+        ? 'Фильтры исключили все строки'
+        : 'Вставь данные и выбери минимум 2 поля';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+
+    const rect = document.querySelector('.chart-panel').getBoundingClientRect();
+    const width = Math.max(700, rect.width);
+    const height = Math.max(520, rect.height);
+    svg.attr('viewBox', [0, 0, width, height]);
+
+    const chartPadding = +document.getElementById('chartPadding').value;
+    const margin = {
+      top: chartPadding,
+      right: chartPadding,
+      bottom: chartPadding,
+      left: chartPadding
+    };
+    const graph = buildGraph(data, axes);
+
+    const linkOpacity = +document.getElementById('linkOpacity').value;
+    const labelFontSize = +document.getElementById('labelFontSize').value;
+    const labelColor = document.getElementById('labelColor').value;
+    const multiplyBlend = document.getElementById('multiplyBlend').checked;
+
+    svg.style('--link-opacity', linkOpacity);
+    svg.style('--label-font-size', `${labelFontSize}px`);
+    svg.style('--label-color', labelColor);
+    svg.style('--link-blend-mode', multiplyBlend ? 'multiply' : 'normal');
+
+    const nodePadding = +document.getElementById('nodePadding').value;
+    const nodeWidth = +document.getElementById('nodeWidth').value;
+    const orderIndex = makeOrderIndex(axes, data);
+
+    const sankey = d3.sankey()
+      .nodeId(d => d.id)
+      .nodeWidth(nodeWidth)
+      .nodePadding(nodePadding)
+      .nodeAlign(d3.sankeyJustify)
+      .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
+      .nodeSort((a, b) => {
+        if (a.axis !== b.axis) return a.axis - b.axis;
+        const idx = orderIndex.get(a.field);
+        return d3.ascending(idx?.get(a.name) ?? 0, idx?.get(b.name) ?? 0);
+      })
+      .linkSort((a, b) => {
+        // Keep link ordering consistent with destination/source node ordering.
+        const ta = orderIndex.get(a.target.field)?.get(a.target.name) ?? 0;
+        const tb = orderIndex.get(b.target.field)?.get(b.target.name) ?? 0;
+        const sa = orderIndex.get(a.source.field)?.get(a.source.name) ?? 0;
+        const sb = orderIndex.get(b.source.field)?.get(b.source.name) ?? 0;
+        return d3.ascending(ta, tb) || d3.ascending(sa, sb);
+      });
+
+    sankey(graph);
+
+    const defs = svg.append('defs');
+    const gradientLinks = document.getElementById('gradientLinks').checked;
+
+    graph.links.forEach((d, i) => {
+      d.gradientId = `grad-${i}`;
+      if (!gradientLinks) return;
+      const g = defs.append('linearGradient')
+        .attr('id', d.gradientId)
+        .attr('gradientUnits', 'userSpaceOnUse')
+        .attr('x1', d.source.x1)
+        .attr('x2', d.target.x0)
+        .attr('y1', 0)
+        .attr('y2', 0);
+
+      g.append('stop').attr('offset', '0%').attr('stop-color', d.source.color);
+      g.append('stop').attr('offset', '100%').attr('stop-color', d.target.color);
+    });
+
+    const xByAxis = new Map();
+    graph.nodes.forEach(n => { if (!xByAxis.has(n.axis)) xByAxis.set(n.axis, n.x0); });
+
+    svg.append('g')
+      .selectAll('text')
+      .data(axes.map((field, i) => ({ field, i, x: xByAxis.get(i) })))
+      .join('text')
+      .attr('class', 'axis-label')
+      .attr('x', d => d.x)
+      .attr('y', Math.max(22, chartPadding * 0.42))
+      .attr('text-anchor', 'middle')
+      .text(d => fieldAliases.get(d.field) || d.field);
+
+    let dragState = null;
+
+    const linksG = svg.append('g').attr('class', 'links');
+    const hoverG = svg.append('g').attr('class', 'hover-routes');
+    const nodesG = svg.append('g').attr('class', 'nodes');
+
+    const link = linksG.selectAll('path')
+      .data(graph.links)
+      .join('path')
+      .attr('class', 'link')
+      .attr('d', ribbonPath)
+      .attr('fill', d => gradientLinks ? `url(#${d.gradientId})` : d.source.color);
+
+    const node = nodesG.selectAll('g')
+      .data(graph.nodes)
+      .join('g')
+      .attr('class', 'node');
+
+    node.append('rect')
+      .attr('x', d => d.x0)
+      .attr('y', d => d.y0)
+      .attr('height', d => Math.max(1, d.y1 - d.y0))
+      .attr('width', d => d.x1 - d.x0)
+      .attr('fill', d => document.getElementById('colorizeNodes').checked ? d.color : '#22262b');
+
+    const showCounts = document.getElementById('showCounts').checked;
+
+    node.append('text')
+      .attr('class', 'node-label')
+      .attr('x', d => d.axis === axes.length - 1 ? d.x0 - 7 : d.x1 + 7)
+      .attr('y', d => (d.y0 + d.y1) / 2 - (showCounts ? 2 : -3))
+      .attr('dy', '0.35em')
+      .attr('text-anchor', d => d.axis === axes.length - 1 ? 'end' : 'start')
+      .text(d => truncate(getValueAlias(d.field, d.name), 30))
+      .on('click.edit', openInlineNodeEditor);
+
+    if (showCounts) {
+      node.append('text')
+        .attr('class', 'node-value')
+        .attr('x', d => d.axis === axes.length - 1 ? d.x0 - 7 : d.x1 + 7)
+        .attr('y', d => (d.y0 + d.y1) / 2 + 11)
+        .attr('text-anchor', d => d.axis === axes.length - 1 ? 'end' : 'start')
+        .text(d => Math.round(d.value).toLocaleString());
+    }
+
+    link
+      .on('mouseenter', (event, d) => {
+        if (dragState) return;
+        highlightRows(d.rowIds);
+        showTooltip(event, `<b>${esc(getValueAlias(d.source.field, d.source.name))} → ${esc(getValueAlias(d.target.field, d.target.name))}</b>
+          ${Math.round(d.value).toLocaleString()} строк
+          <div class="muted">${esc(fieldAliases.get(d.source.field) || d.source.field)} → ${esc(fieldAliases.get(d.target.field) || d.target.field)}</div>`);
+      })
+      .on('mousemove', event => { if (!dragState) moveTooltip(event); })
+      .on('mouseleave', () => { if (!dragState) clearHighlight(); });
+
+    node
+      .on('mouseenter', (event, d) => {
+        if (dragState) return;
+        highlightRows(d.rowIds);
+        showTooltip(event, `<b>${esc(fieldAliases.get(d.field) || d.field)}: ${esc(getValueAlias(d.field, d.name))}</b>${Math.round(d.value).toLocaleString()} строк`);
+      })
+      .on('mousemove', event => { if (!dragState) moveTooltip(event); })
+      .on('mouseleave', () => { if (!dragState) clearHighlight(); });
+
+    function intersectionCount(a, b) {
+      let count = 0;
+      if (a.size > b.size) [a, b] = [b, a];
+      for (const id of a) if (b.has(id)) count++;
+      return count;
+    }
+
+    // Build a geometrically continuous layout for the selected cohort.
+    // We do NOT simply center each selected ribbon inside every aggregate link.
+    // Instead, every selected node receives one contiguous internal band and
+    // its selected incoming/outgoing links are stacked inside that same band.
+    function buildSubsetLayout(rowSet) {
+      const nodeSubset = new Map();
+      const selectedLinks = [];
+
+      // First find selected counts in nodes.
+      for (const n of graph.nodes) {
+        const count = intersectionCount(rowSet, n.rowIds);
+        if (!count) continue;
+
+        const fullHeight = n.y1 - n.y0;
+        const scale = n.value > 0 ? fullHeight / n.value : 0;
+        const height = Math.max(0, count * scale);
+
+        // A contiguous selected band centered in the full node.
+        // Incoming and outgoing links will both be packed into this same band.
+        const cy = (n.y0 + n.y1) / 2;
+        const y0 = cy - height / 2;
+        const y1 = cy + height / 2;
+
+        nodeSubset.set(n.id, {
+          node: n,
+          count,
+          scale,
+          y0,
+          y1,
+          inCursor: y0,
+          outCursor: y0
+        });
+      }
+
+      // Selected link counts.
+      for (const d of graph.links) {
+        const count = intersectionCount(rowSet, d.rowIds);
+        if (!count) continue;
+
+        const sourceSubset = nodeSubset.get(d.source.id);
+        const targetSubset = nodeSubset.get(d.target.id);
+        if (!sourceSubset || !targetSubset) continue;
+
+        // Use node scale instead of aggregate link centering.
+        // Source/target scale should match in a normal sankey, but keep both
+        // separately to avoid floating-point drift.
+        const sourceWidth = count * sourceSubset.scale;
+        const targetWidth = count * targetSubset.scale;
+
+        selectedLinks.push({
+          link: d,
+          count,
+          sourceWidth,
+          targetWidth,
+          sy0: 0,
+          sy1: 0,
+          ty0: 0,
+          ty1: 0
+        });
+      }
+
+      // Respect existing visual link ordering at each node.
+      const outgoing = d3.group(selectedLinks, x => x.link.source.id);
+      const incoming = d3.group(selectedLinks, x => x.link.target.id);
+
+      for (const [nodeId, list] of outgoing) {
+        const ns = nodeSubset.get(nodeId);
+        list.sort((a, b) => a.link.y0 - b.link.y0);
+
+        let cursor = ns.y0;
+        for (const x of list) {
+          x.sy0 = cursor;
+          x.sy1 = cursor + x.sourceWidth;
+          cursor = x.sy1;
+        }
+      }
+
+      for (const [nodeId, list] of incoming) {
+        const ns = nodeSubset.get(nodeId);
+        list.sort((a, b) => a.link.y1 - b.link.y1);
+
+        let cursor = ns.y0;
+        for (const x of list) {
+          x.ty0 = cursor;
+          x.ty1 = cursor + x.targetWidth;
+          cursor = x.ty1;
+        }
+      }
+
+      return { nodeSubset, selectedLinks };
+    }
+
+    function subsetRibbonPath(x) {
+      const d = x.link;
+      const x0 = d.source.x1;
+      const x1 = d.target.x0;
+
+      const y0t = x.sy0;
+      const y0b = x.sy1;
+      const y1t = x.ty0;
+      const y1b = x.ty1;
+
+      const c0 = x0 + (x1 - x0) * .50;
+      const c1 = x1 - (x1 - x0) * .50;
+
+      return [
+        `M${x0},${y0t}`,
+        `C${c0},${y0t} ${c1},${y1t} ${x1},${y1t}`,
+        `L${x1},${y1b}`,
+        `C${c1},${y1b} ${c0},${y0b} ${x0},${y0b}`,
+        'Z'
+      ].join(' ');
+    }
+
+    function highlightRows(rowSet) {
+      const { nodeSubset, selectedLinks } = buildSubsetLayout(rowSet);
+      const selectedLinkSet = new Set(selectedLinks.map(x => x.link));
+      const selectedNodeIds = new Set(nodeSubset.keys());
+
+      link.classed('dimmed', d => !selectedLinkSet.has(d))
+          .classed('highlighted', d => selectedLinkSet.has(d));
+
+      node.classed('dimmed', d => !selectedNodeIds.has(d.id))
+          .classed('highlighted', d => selectedNodeIds.has(d.id));
+
+      // Values now reflect the selected cohort, not the full dataset.
+      node.select('.node-value')
+        .text(d => {
+          const subset = nodeSubset.get(d.id);
+          return subset ? subset.count.toLocaleString() : '0';
+        });
+
+      hoverG.selectAll('path')
+        .data(selectedLinks, x => x.link.source.id + '|' + x.link.target.id)
+        .join(
+          enter => enter.append('path').attr('class', 'hover-route'),
+          update => update,
+          exit => exit.remove()
+        )
+        .attr('d', subsetRibbonPath)
+        .attr('fill', x => {
+          const d = x.link;
+          return gradientLinks ? `url(#${d.gradientId})` : d.source.color;
+        });
+    }
+
+    function clearHighlight(force = false) {
+      if (dragState && !force) return;
+      link.classed('dimmed', false).classed('highlighted', false);
+      node.classed('dimmed', false).classed('highlighted', false);
+      hoverG.selectAll('*').remove();
+
+      // Restore full node totals after hover.
+      node.select('.node-value')
+        .text(d => Math.round(d.value).toLocaleString());
+
+      tooltip.style.display = 'none';
+    }
+
+    // Manual vertical node reordering.
+    // The dragged node follows the pointer continuously. Neighbours are packed
+    // around it, and order changes when the dragged centre crosses a neighbour.
+    const top = margin.top;
+    const bottom = height - margin.bottom;
+
+    function axisNodes(axis) {
+      return graph.nodes.filter(n => n.axis === axis);
+    }
+
+    function redrawDynamic() {
+      sankey.update(graph);
+
+      node.select('rect')
+        .attr('y', d => d.y0)
+        .attr('height', d => Math.max(1, d.y1 - d.y0));
+
+      node.select('.node-label')
+        .attr('y', d => (d.y0 + d.y1) / 2 - (showCounts ? 2 : -3));
+
+      node.select('.node-value')
+        .attr('y', d => (d.y0 + d.y1) / 2 + 11);
+
+      link.attr('d', ribbonPath);
+      hoverG.selectAll('*').remove();
+    }
+
+    function clientToSvgY(clientX, clientY) {
+      const svgEl = svg.node();
+      const pt = svgEl.createSVGPoint();
+      pt.x = clientX;
+      pt.y = clientY;
+      const ctm = svgEl.getScreenCTM();
+      if (!ctm) return clientY;
+      return pt.matrixTransform(ctm.inverse()).y;
+    }
+
+    function layoutAroundDragged(order, dragged, desiredY0) {
+      const hDragged = dragged.y1 - dragged.y0;
+      const gap = nodePadding;
+      const idx = order.indexOf(dragged);
+
+      // Keep the dragged node under the cursor as much as possible.
+      let y0 = Math.max(top, Math.min(bottom - hDragged, desiredY0));
+      dragged.y0 = y0;
+      dragged.y1 = y0 + hDragged;
+
+      // Pack nodes above the dragged one upward from its top.
+      let cursor = dragged.y0 - gap;
+      for (let i = idx - 1; i >= 0; i--) {
+        const n = order[i];
+        const h = n.y1 - n.y0;
+        n.y1 = cursor;
+        n.y0 = cursor - h;
+        cursor = n.y0 - gap;
+      }
+
+      // If the top group overflowed, shift the whole column down.
+      if (order.length && order[0].y0 < top) {
+        const shift = top - order[0].y0;
+        for (const n of order) {
+          n.y0 += shift;
+          n.y1 += shift;
+        }
+      }
+
+      // Pack nodes below downward from dragged bottom.
+      cursor = dragged.y1 + gap;
+      for (let i = idx + 1; i < order.length; i++) {
+        const n = order[i];
+        const h = n.y1 - n.y0;
+        n.y0 = cursor;
+        n.y1 = cursor + h;
+        cursor = n.y1 + gap;
+      }
+
+      // If the bottom group overflowed, shift the whole column up.
+      if (order.length && order[order.length - 1].y1 > bottom) {
+        const shift = order[order.length - 1].y1 - bottom;
+        for (const n of order) {
+          n.y0 -= shift;
+          n.y1 -= shift;
+        }
+      }
+    }
+
+    // dragState intentionally lives in render scope so hover handlers can
+    // synchronously see that drag mode owns the interaction.
+    dragState = null;
+    let dragRaf = 0;
+    let pendingPointer = null;
+
+    function setDragHighlight(d) {
+      // Hover overlays/tooltips are forbidden during drag.
+      clearHighlight(true);
+      tooltip.style.display = 'none';
+
+      node.classed('dragging-node', n => n === d)
+          .classed('dimmed', n => n !== d)
+          .classed('highlighted', n => n === d);
+
+      // Keep connected ribbons visible so the moved node is easy to track.
+      link.classed('dimmed', l => l.source !== d && l.target !== d)
+          .classed('highlighted', l => l.source === d || l.target === d);
+    }
+
+    function clearDragHighlight() {
+      node.classed('dragging-node', false)
+          .classed('dimmed', false)
+          .classed('highlighted', false);
+
+      link.classed('dimmed', false)
+          .classed('highlighted', false);
+    }
+
+    function processDragFrame() {
+      dragRaf = 0;
+      if (!dragState || !pendingPointer) return;
+
+      const { x, y } = pendingPointer;
+      pendingPointer = null;
+
+      const d = dragState.node;
+      const svgY = clientToSvgY(x, y);
+      const desiredY0 = svgY - dragState.offsetY;
+      const draggedCenter = desiredY0 + dragState.height / 2;
+
+      const others = dragState.order.filter(n => n !== d);
+      let insertIndex = 0;
+      while (
+        insertIndex < others.length &&
+        draggedCenter > (others[insertIndex].y0 + others[insertIndex].y1) / 2
+      ) {
+        insertIndex++;
+      }
+
+      const nextOrder = [...others];
+      nextOrder.splice(insertIndex, 0, d);
+
+      const changed = nextOrder.some((n, i) => n !== dragState.order[i]);
+      if (changed) {
+        dragState.order = nextOrder;
+        console.log('[alluvial-drag] reorder', {
+          field: d.field,
+          value: d.name,
+          index: insertIndex,
+          order: dragState.order.map(n => n.name)
+        });
+      }
+
+      layoutAroundDragged(dragState.order, d, desiredY0);
+      redrawDynamic();
+      setDragHighlight(d);
+      dragState.moveCount++;
+    }
+
+    function onGlobalPointerMove(event) {
+      if (!dragState || dragState.pointerId !== event.pointerId) return;
+      event.preventDefault();
+
+      // Horizontal position no longer matters. The pointer may be anywhere
+      // on the screen; only its Y coordinate controls the node.
+      pendingPointer = { x: event.clientX, y: event.clientY };
+      if (!dragRaf) dragRaf = requestAnimationFrame(processDragFrame);
+    }
+
+    function finishGlobalDrag(event, cancelled = false) {
+      if (!dragState || dragState.pointerId !== event.pointerId) return;
+      event.preventDefault();
+
+      pendingPointer = { x: event.clientX, y: event.clientY };
+      if (dragRaf) cancelAnimationFrame(dragRaf);
+      processDragFrame();
+
+      const d = dragState.node;
+      const ordered = dragState.order.map(n => n.name);
+
+      if (!cancelled) manualNodeOrder.set(d.field, ordered);
+
+      console.log('[alluvial-drag] end', {
+        field: d.field,
+        value: d.name,
+        moves: dragState.moveCount,
+        savedOrder: ordered,
+        cancelled
+      });
+
+      try {
+        if (dragState.rectEl.hasPointerCapture(event.pointerId)) {
+          dragState.rectEl.releasePointerCapture(event.pointerId);
+        }
+      } catch (err) {
+        console.warn('[alluvial-drag] releasePointerCapture failed', err);
+      }
+
+      window.removeEventListener('pointermove', onGlobalPointerMove, true);
+      window.removeEventListener('pointerup', onGlobalPointerUp, true);
+      window.removeEventListener('pointercancel', onGlobalPointerCancel, true);
+
+      dragState = null;
+      pendingPointer = null;
+      clearDragHighlight();
+    }
+
+    function onGlobalPointerUp(event) {
+      finishGlobalDrag(event, false);
+    }
+
+    function onGlobalPointerCancel(event) {
+      finishGlobalDrag(event, true);
+    }
+
+    node.select('rect')
+      .on('pointerdown.drag', function(event, d) {
+        if (event.button !== 0 || dragState) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        closeInlineEditor(false);
+
+        const rectEl = this;
+        const y = clientToSvgY(event.clientX, event.clientY);
+
+        dragState = {
+          pointerId: event.pointerId,
+          rectEl,
+          node: d,
+          height: d.y1 - d.y0,
+          offsetY: y - d.y0,
+          order: axisNodes(d.axis).slice().sort((a, b) => a.y0 - b.y0),
+          moveCount: 0
+        };
+
+        try { rectEl.setPointerCapture(event.pointerId); }
+        catch (err) { console.warn('[alluvial-drag] setPointerCapture failed', err); }
+
+        window.addEventListener('pointermove', onGlobalPointerMove, { capture: true, passive: false });
+        window.addEventListener('pointerup', onGlobalPointerUp, { capture: true, passive: false });
+        window.addEventListener('pointercancel', onGlobalPointerCancel, { capture: true, passive: false });
+
+        d3.select(rectEl.parentNode).raise();
+        setDragHighlight(d);
+
+        console.log('[alluvial-drag] start', {
+          field: d.field,
+          value: d.name,
+          svgY: y,
+          order: dragState.order.map(n => n.name)
+        });
+      });
+  }
+
+  function truncate(s, n) {
+    s = String(s);
+    return s.length > n ? s.slice(0, n - 1) + '…' : s;
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, m => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;'
+    }[m]));
+  }
+
+  function showTooltip(event, html) {
+    tooltip.innerHTML = html;
+    tooltip.style.display = 'block';
+    moveTooltip(event);
+  }
+
+  function moveTooltip(event) {
+    const pad = 14;
+    let x = event.clientX + pad;
+    let y = event.clientY + pad;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+    const r = tooltip.getBoundingClientRect();
+    if (r.right > window.innerWidth - 8) x = event.clientX - r.width - pad;
+    if (r.bottom > window.innerHeight - 8) y = event.clientY - r.height - pad;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+  }
+
+  function scheduleRender() {
+    clearTimeout(redrawTimer);
+    redrawTimer = setTimeout(render, 70);
+  }
+
+  function bindRange(rangeId, numberId) {
+    const range = document.getElementById(rangeId);
+    const num = document.getElementById(numberId);
+
+    const syncFromRange = () => {
+      num.value = range.value;
+      scheduleRender();
+    };
+
+    const syncFromNum = () => {
+      let v = +num.value;
+      v = Math.max(+range.min, Math.min(+range.max, v));
+      range.value = v;
+      num.value = v;
+      scheduleRender();
+    };
+
+    range.addEventListener('input', syncFromRange);
+    num.addEventListener('change', syncFromNum);
+  }
+
+  input.addEventListener('input', () => {
+    clearTimeout(redrawTimer);
+    redrawTimer = setTimeout(parseInput, 180);
+  });
+
+  document.getElementById('pasteBtn').addEventListener('click', async () => {
+    try {
+      input.value = await navigator.clipboard.readText();
+      parseInput();
+    } catch {
+      input.focus();
+      alert('Браузер не дал доступ к clipboard. Используй Ctrl+V в поле Input.');
+    }
+  });
+
+  document.getElementById('sampleBtn').onclick = () => {
+    input.value = sample;
+    parseInput();
+  };
+
+  document.getElementById('clearBtn').onclick = () => {
+    input.value = '';
+    parseInput();
+  };
+
+  document.getElementById('smartBtn').onclick = () => {
+    selected = new Set(suggestColumns(columns, rows));
+    renderFields();
+    scheduleRender();
+  };
+
+  document.getElementById('resetOrderBtn').onclick = () => {
+    manualNodeOrder.clear();
+    document.getElementById('autoOrder').checked = true;
+    scheduleRender();
+  };
+
+  ['showCounts','gradientLinks','autoOrder','colorizeNodes','multiplyBlend'].forEach(id => {
+    document.getElementById(id).addEventListener('change', scheduleRender);
+  });
+
+  document.getElementById('enableFilters').addEventListener('change', () => {
+    renderFields();
+    scheduleRender();
+  });
+
+  bindRange('nodePadding', 'nodePaddingNum');
+  bindRange('nodeWidth', 'nodeWidthNum');
+  bindRange('linkOpacity', 'linkOpacityNum');
+  bindRange('chartPadding', 'chartPaddingNum');
+  bindRange('labelFontSize', 'labelFontSizeNum');
+
+  document.getElementById('labelColor').addEventListener('input', scheduleRender);
+
+  document.getElementById('fitBtn').onclick = render;
+
+  document.getElementById('downloadBtn').onclick = () => {
+    if (!svg.node().children.length) return;
+    const clone = svg.node().cloneNode(true);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    const blob = new Blob([new XMLSerializer().serializeToString(clone)], {type:'image/svg+xml'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'alluvial.svg';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+
+  new ResizeObserver(scheduleRender).observe(document.querySelector('.chart-panel'));
+
+  input.value = sample;
+  parseInput();
+})();
+</script>
+</body>
+</html>
