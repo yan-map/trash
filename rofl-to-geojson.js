@@ -2522,6 +2522,176 @@ function scanTailRecordLayouts(payload, start, end) {
   };
 }
 
+function classifyI32Value(value) {
+  if (value === 0) {
+    return "zero";
+  }
+
+  if (value >= -4096 && value <= 4096) {
+    return "small";
+  }
+
+  if (value >= -4096 && value <= DEFAULT_EXTENT + 4096) {
+    return "tile";
+  }
+
+  return "large";
+}
+
+function analyzeI32Window(payload, start, count) {
+  let zero = 0;
+  let small = 0;
+  let tile = 0;
+  let large = 0;
+
+  let min = Infinity;
+  let max = -Infinity;
+
+  const preview = [];
+
+  for (let i = 0; i < count; i++) {
+    const offset = start + i * 4;
+
+    if (offset + 4 > payload.length) {
+      break;
+    }
+
+    const value = payload.readInt32LE(offset);
+
+    min = Math.min(min, value);
+
+    max = Math.max(max, value);
+
+    const kind = classifyI32Value(value);
+
+    if (kind === "zero") {
+      zero++;
+    } else if (kind === "small") {
+      small++;
+    } else if (kind === "tile") {
+      tile++;
+    } else {
+      large++;
+    }
+
+    if (preview.length < 16) {
+      preview.push(value);
+    }
+  }
+
+  const total = zero + small + tile + large;
+
+  return {
+    start,
+
+    end: start + total * 4,
+
+    count: total,
+
+    min: min === Infinity ? null : min,
+
+    max: max === -Infinity ? null : max,
+
+    zero,
+    small,
+    tile,
+    large,
+
+    zeroRatio: total ? zero / total : 0,
+
+    smallRatio: total ? small / total : 0,
+
+    tileRatio: total ? tile / total : 0,
+
+    largeRatio: total ? large / total : 0,
+
+    preview,
+  };
+}
+
+function scanTailSections(payload, start, end) {
+  /*
+   * 64 i32 = 256 byte window.
+   * Шаг 16 i32 = 64 bytes.
+   *
+   * Этого достаточно, чтобы увидеть смену
+   * характера потока без слишком мелкого шума.
+   */
+  const WINDOW_VALUES = 64;
+
+  const STEP_VALUES = 16;
+
+  const windows = [];
+
+  for (
+    let offset = start;
+    offset + WINDOW_VALUES * 4 <= end;
+    offset += STEP_VALUES * 4
+  ) {
+    windows.push(analyzeI32Window(payload, offset, WINDOW_VALUES));
+  }
+
+  /*
+   * Находим места, где статистика резко меняется.
+   */
+  const transitions = [];
+
+  for (let i = 1; i < windows.length; i++) {
+    const a = windows[i - 1];
+
+    const b = windows[i];
+
+    const delta =
+      Math.abs(a.zeroRatio - b.zeroRatio) +
+      Math.abs(a.smallRatio - b.smallRatio) +
+      Math.abs(a.tileRatio - b.tileRatio) +
+      Math.abs(a.largeRatio - b.largeRatio);
+
+    transitions.push({
+      offset: b.start,
+
+      delta,
+
+      before: {
+        zeroRatio: a.zeroRatio,
+
+        smallRatio: a.smallRatio,
+
+        tileRatio: a.tileRatio,
+
+        largeRatio: a.largeRatio,
+      },
+
+      after: {
+        zeroRatio: b.zeroRatio,
+
+        smallRatio: b.smallRatio,
+
+        tileRatio: b.tileRatio,
+
+        largeRatio: b.largeRatio,
+      },
+    });
+  }
+
+  transitions.sort((a, b) => b.delta - a.delta);
+
+  return {
+    start,
+    end,
+
+    windowBytes: WINDOW_VALUES * 4,
+
+    stepBytes: STEP_VALUES * 4,
+
+    windowCount: windows.length,
+
+    strongestTransitions: transitions.slice(0, 40),
+
+    windows,
+  };
+}
+
 function main() {
   const args = process.argv.slice(2);
 
@@ -2530,7 +2700,7 @@ function main() {
   if (!input) {
     die(
       "usage: node rofl-to-geojson.js tile.vt " +
-        "[--mode=features|delta-columns|geometry-info|post-dump|column-scan|structure-dump|stream-scan|tail-scan|tail-i32-pairs|tail-record-scan|dump] " +
+        "[--mode=features|delta-columns|geometry-info|post-dump|column-scan|structure-dump|stream-scan|tail-scan|tail-i32-pairs|tail-record-scan|tail-sections|dump] " +
         "[--layer=N|name] " +
         "[--out=file.json]",
     );
@@ -2551,6 +2721,7 @@ function main() {
     "tail-scan",
     "tail-i32-pairs",
     "tail-record-scan",
+    "tail-sections",
     "dump",
   ];
   if (!allowedModes.includes(mode)) {
@@ -2708,6 +2879,41 @@ function main() {
         },
 
         "Geometry info written",
+      );
+
+      return;
+    }
+
+    if (mode === "tail-sections") {
+      const tailStart =
+        post.binaryColumn.start !== null
+          ? post.binaryColumn.start + post.binaryColumn.length
+          : post.zeroBlock.end;
+
+      const scan = scanTailSections(
+        layer.payload,
+        tailStart,
+        layer.payload.length,
+      );
+
+      writeJson(
+        outputArg,
+
+        {
+          layer: layer.name,
+
+          roflVersion: rofl.version,
+
+          schemaCount: rofl.schemaCount,
+
+          knownCoordinateCount: geometry.count,
+
+          tailStart,
+
+          scan,
+        },
+
+        "Tail sections written",
       );
 
       return;
