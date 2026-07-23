@@ -2692,6 +2692,124 @@ function scanTailSections(payload, start, end) {
   };
 }
 
+function dumpNumericSection(payload, start, end) {
+  start = Math.max(0, start);
+
+  end = Math.min(payload.length, end);
+
+  /*
+   * Для i32 выравниваем вниз.
+   */
+  const aligned4 = start - (start % 4);
+
+  const i32 = [];
+  const u32 = [];
+
+  for (let offset = aligned4; offset + 4 <= end; offset += 4) {
+    i32.push(payload.readInt32LE(offset));
+
+    u32.push(payload.readUInt32LE(offset));
+  }
+
+  /*
+   * i16 отдельно.
+   */
+  const aligned2 = start - (start % 2);
+
+  const i16 = [];
+
+  for (let offset = aligned2; offset + 2 <= end; offset += 2) {
+    i16.push(payload.readInt16LE(offset));
+  }
+
+  /*
+   * Raw bytes.
+   */
+  const u8 = Array.from(payload.subarray(start, end));
+
+  let i32Zero = 0;
+  let i32Small = 0;
+  let i32Tile = 0;
+  let i32Large = 0;
+
+  for (const value of i32) {
+    if (value === 0) {
+      i32Zero++;
+    } else if (value >= -4096 && value <= 4096) {
+      i32Small++;
+    } else if (value >= -4096 && value <= DEFAULT_EXTENT + 4096) {
+      i32Tile++;
+    } else {
+      i32Large++;
+    }
+  }
+
+  return {
+    start,
+    end,
+
+    bytes: end - start,
+
+    i32Count: i32.length,
+
+    i32Stats: {
+      zero: i32Zero,
+
+      small: i32Small,
+
+      tile: i32Tile,
+
+      large: i32Large,
+    },
+
+    /*
+     * Не раздуваем JSON бесконечно.
+     */
+    i32: i32.slice(0, 2048),
+
+    u32: u32.slice(0, 2048),
+
+    i16: i16.slice(0, 4096),
+
+    u8: u8.slice(0, 8192),
+  };
+}
+
+function dumpKnownTailSections(payload) {
+  /*
+   * Эти offsets получены именно из
+   * tail-sections для текущего sample.
+   */
+  const boundaries = [
+    88128,
+    88832,
+    93120,
+    93696,
+    97920,
+    100480,
+    payload.length,
+  ];
+
+  const sections = [];
+
+  for (let i = 0; i + 1 < boundaries.length; i++) {
+    const start = boundaries[i];
+
+    const end = boundaries[i + 1];
+
+    sections.push({
+      index: i,
+
+      ...dumpNumericSection(payload, start, end),
+    });
+  }
+
+  return {
+    boundaries,
+    sections,
+  };
+}
+
 function main() {
   const args = process.argv.slice(2);
 
@@ -2700,7 +2818,7 @@ function main() {
   if (!input) {
     die(
       "usage: node rofl-to-geojson.js tile.vt " +
-        "[--mode=features|delta-columns|geometry-info|post-dump|column-scan|structure-dump|stream-scan|tail-scan|tail-i32-pairs|tail-record-scan|tail-sections|dump] " +
+        "[--mode=features|delta-columns|geometry-info|post-dump|column-scan|structure-dump|section-dump|stream-scan|tail-scan|tail-i32-pairs|tail-record-scan|tail-sections|dump] " +
         "[--layer=N|name] " +
         "[--out=file.json]",
     );
@@ -2722,6 +2840,7 @@ function main() {
     "tail-i32-pairs",
     "tail-record-scan",
     "tail-sections",
+    "section-dump",
     "dump",
   ];
   if (!allowedModes.includes(mode)) {
@@ -2879,6 +2998,38 @@ function main() {
         },
 
         "Geometry info written",
+      );
+
+      return;
+    }
+
+    if (mode === "section-dump") {
+      const sections = dumpKnownTailSections(layer.payload);
+
+      writeJson(
+        outputArg,
+
+        {
+          layer: layer.name,
+
+          roflVersion: rofl.version,
+
+          schemaCount: rofl.schemaCount,
+
+          coordinateCount: geometry.count,
+
+          knownGeometry: {
+            xStart: geometry.xStart,
+
+            yStart: geometry.yStart,
+
+            end: geometry.end,
+          },
+
+          sections,
+        },
+
+        "Section dump written",
       );
 
       return;
