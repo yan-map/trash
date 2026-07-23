@@ -2274,6 +2274,254 @@ function scanTailStructure(payload, start) {
   };
 }
 
+function decodeTailI32Pairs(payload, start, end) {
+  const values = [];
+
+  start -= start % 4;
+
+  end = Math.min(payload.length, end);
+
+  /*
+   * Сначала читаем tail как простой i32[]
+   */
+  for (let offset = start; offset + 4 <= end; offset += 4) {
+    values.push({
+      offset,
+      value: payload.readInt32LE(offset),
+    });
+  }
+
+  const pairs = [];
+
+  /*
+   * Ищем соседние ненулевые i32 значения,
+   * похожие на XY.
+   *
+   * Допускаем небольшой выход за extent,
+   * потому что geometry может иметь tile buffer.
+   */
+  const MIN = -4096;
+
+  const MAX = DEFAULT_EXTENT + 4096;
+
+  for (let i = 0; i + 1 < values.length; i++) {
+    const a = values[i];
+
+    const b = values[i + 1];
+
+    if (a.value === 0 || b.value === 0) {
+      continue;
+    }
+
+    const plausible =
+      a.value >= MIN && a.value <= MAX && b.value >= MIN && b.value <= MAX;
+
+    if (!plausible) {
+      continue;
+    }
+
+    pairs.push({
+      index: pairs.length,
+
+      offsetA: a.offset,
+
+      offsetB: b.offset,
+
+      x: a.value,
+
+      y: b.value,
+    });
+  }
+
+  return {
+    start,
+    end,
+
+    i32Count: values.length,
+
+    pairCount: pairs.length,
+
+    firstPairs: pairs.slice(0, 256),
+  };
+}
+
+function analyzeTailRecordLayout(payload, start, end, stride) {
+  end = Math.min(end, payload.length);
+
+  const slotCount = Math.floor(stride / 4);
+
+  const recordCount = Math.floor((end - start) / stride);
+
+  const slots = Array.from({ length: slotCount }, (_, slot) => ({
+    slot,
+    offsetInRecord: slot * 4,
+
+    zeroCount: 0,
+    nonZeroCount: 0,
+
+    min: Infinity,
+    max: -Infinity,
+
+    tileLikeCount: 0,
+    smallSignedCount: 0,
+
+    preview: [],
+  }));
+
+  for (let recordIndex = 0; recordIndex < recordCount; recordIndex++) {
+    const recordStart = start + recordIndex * stride;
+
+    for (let slot = 0; slot < slotCount; slot++) {
+      const offset = recordStart + slot * 4;
+
+      const value = payload.readInt32LE(offset);
+
+      const info = slots[slot];
+
+      if (value === 0) {
+        info.zeroCount++;
+      } else {
+        info.nonZeroCount++;
+      }
+
+      info.min = Math.min(info.min, value);
+
+      info.max = Math.max(info.max, value);
+
+      /*
+       * Похоже на координату tile-local
+       * с небольшим buffer.
+       */
+      if (value >= -4096 && value <= DEFAULT_EXTENT + 4096) {
+        info.tileLikeCount++;
+      }
+
+      /*
+       * Возможно delta / flag / index.
+       */
+      if (value >= -4096 && value <= 4096) {
+        info.smallSignedCount++;
+      }
+
+      if (info.preview.length < 32) {
+        info.preview.push(value);
+      }
+    }
+  }
+
+  for (const info of slots) {
+    info.zeroRatio = recordCount > 0 ? info.zeroCount / recordCount : 0;
+
+    info.tileLikeRatio = recordCount > 0 ? info.tileLikeCount / recordCount : 0;
+
+    info.smallSignedRatio =
+      recordCount > 0 ? info.smallSignedCount / recordCount : 0;
+
+    if (info.min === Infinity) {
+      info.min = null;
+      info.max = null;
+    }
+  }
+
+  /*
+   * Первые records отдельно,
+   * чтобы глазами увидеть layout.
+   */
+  const records = [];
+
+  for (
+    let recordIndex = 0;
+    recordIndex < Math.min(recordCount, 128);
+    recordIndex++
+  ) {
+    const recordStart = start + recordIndex * stride;
+
+    const values = [];
+
+    for (let slot = 0; slot < slotCount; slot++) {
+      values.push(payload.readInt32LE(recordStart + slot * 4));
+    }
+
+    records.push({
+      index: recordIndex,
+
+      offset: recordStart,
+
+      values,
+    });
+  }
+
+  return {
+    start,
+    end,
+
+    stride,
+    slotCount,
+    recordCount,
+
+    trailingBytes: (end - start) % stride,
+
+    slots,
+    records,
+  };
+}
+
+function scanTailRecordLayouts(payload, start, end) {
+  /*
+   * Начало 88128 содержит несколько control
+   * значений. Поэтому проверяем также небольшие
+   * phase shifts от tailStart.
+   */
+  const strides = [8, 12, 16, 20, 24, 28, 32];
+
+  const phases = [0, 4, 8, 12, 16, 20, 24, 28, 32, 40, 48, 56];
+
+  const layouts = [];
+
+  for (const stride of strides) {
+    for (const phase of phases) {
+      const layoutStart = start + phase;
+
+      if (layoutStart + stride > end) {
+        continue;
+      }
+
+      const analysis = analyzeTailRecordLayout(
+        payload,
+        layoutStart,
+        end,
+        stride,
+      );
+
+      /*
+       * Простая диагностическая оценка:
+       * хорошие record layouts обычно дают
+       * заметно разные роли разным slots.
+       */
+      const ratios = analysis.slots.map((slot) => slot.zeroRatio);
+
+      const maxZero = Math.max(...ratios);
+
+      const minZero = Math.min(...ratios);
+
+      analysis.structureScore = maxZero - minZero;
+
+      layouts.push(analysis);
+    }
+  }
+
+  layouts.sort(
+    (a, b) => b.structureScore - a.structureScore || a.start - b.start,
+  );
+
+  return {
+    start,
+    end,
+
+    layouts: layouts.slice(0, 20),
+  };
+}
+
 function main() {
   const args = process.argv.slice(2);
 
@@ -2282,7 +2530,7 @@ function main() {
   if (!input) {
     die(
       "usage: node rofl-to-geojson.js tile.vt " +
-        "[--mode=features|delta-columns|geometry-info|post-dump|column-scan|structure-dump|stream-scan|tail-scan|dump] " +
+        "[--mode=features|delta-columns|geometry-info|post-dump|column-scan|structure-dump|stream-scan|tail-scan|tail-i32-pairs|tail-record-scan|dump] " +
         "[--layer=N|name] " +
         "[--out=file.json]",
     );
@@ -2301,9 +2549,10 @@ function main() {
     "structure-dump",
     "stream-scan",
     "tail-scan",
+    "tail-i32-pairs",
+    "tail-record-scan",
     "dump",
   ];
-
   if (!allowedModes.includes(mode)) {
     die(`unknown mode: ${mode}`);
   }
@@ -2459,6 +2708,41 @@ function main() {
         },
 
         "Geometry info written",
+      );
+
+      return;
+    }
+
+    if (mode === "tail-record-scan") {
+      const tailStart =
+        post.binaryColumn.start !== null
+          ? post.binaryColumn.start + post.binaryColumn.length
+          : post.zeroBlock.end;
+
+      const scan = scanTailRecordLayouts(
+        layer.payload,
+        tailStart,
+        layer.payload.length,
+      );
+
+      writeJson(
+        outputArg,
+
+        {
+          layer: layer.name,
+
+          roflVersion: rofl.version,
+
+          schemaCount: rofl.schemaCount,
+
+          knownCoordinateCount: geometry.count,
+
+          tailStart,
+
+          scan,
+        },
+
+        "Tail record scan written",
       );
 
       return;
@@ -2640,6 +2924,41 @@ function main() {
         },
 
         "Stream scan written",
+      );
+
+      return;
+    }
+
+    if (mode === "tail-i32-pairs") {
+      const tailStart =
+        post.binaryColumn.start !== null
+          ? post.binaryColumn.start + post.binaryColumn.length
+          : post.zeroBlock.end;
+
+      const decoded = decodeTailI32Pairs(
+        layer.payload,
+        tailStart,
+        layer.payload.length,
+      );
+
+      writeJson(
+        outputArg,
+
+        {
+          layer: layer.name,
+
+          roflVersion: rofl.version,
+
+          schemaCount: rofl.schemaCount,
+
+          tailStart,
+
+          knownCoordinateCount: geometry.count,
+
+          decoded,
+        },
+
+        "Tail i32 pairs written",
       );
 
       return;
