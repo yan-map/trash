@@ -2810,6 +2810,330 @@ function dumpKnownTailSections(payload) {
   };
 }
 
+function analyzeDeltaIndexStream(payload, start, end, geometryCount) {
+  const count = Math.floor((end - start) / 4);
+
+  const deltas = [];
+  const indices = [];
+
+  let value = 0;
+
+  let inside = 0;
+  let negative = 0;
+  let tooHigh = 0;
+
+  let min = Infinity;
+  let max = -Infinity;
+
+  let resetsToZero = 0;
+  let hitsGeometryEnd = 0;
+
+  for (let i = 0; i < count; i++) {
+    const delta = payload.readInt32LE(start + i * 4);
+
+    deltas.push(delta);
+
+    value += delta;
+
+    indices.push(value);
+
+    min = Math.min(min, value);
+
+    max = Math.max(max, value);
+
+    if (value >= 0 && value < geometryCount) {
+      inside++;
+    } else if (value < 0) {
+      negative++;
+    } else {
+      tooHigh++;
+    }
+
+    if (value === 0) {
+      resetsToZero++;
+    }
+
+    if (value === geometryCount) {
+      hitsGeometryEnd++;
+    }
+  }
+
+  return {
+    start,
+    end,
+
+    count,
+
+    min,
+    max,
+
+    final: value,
+
+    inside,
+    negative,
+    tooHigh,
+
+    insideRatio: count ? inside / count : 0,
+
+    resetsToZero,
+
+    hitsGeometryEnd,
+
+    firstDeltas: deltas.slice(0, 256),
+
+    firstIndices: indices.slice(0, 256),
+
+    lastIndices: indices.slice(Math.max(0, indices.length - 128)),
+  };
+}
+
+function analyzeDeltaIndexVariants(payload, start, end, geometryCount) {
+  const variants = [];
+
+  /*
+   * A. Обычный signed cumulative int32.
+   */
+  variants.push({
+    kind: "signed-i32-cumulative",
+
+    ...analyzeDeltaIndexStream(payload, start, end, geometryCount),
+  });
+
+  /*
+   * B. ZigZag decode.
+   *
+   * Иногда signed deltas хранят как:
+   *
+   * 0 -> 0
+   * 1 -> -1
+   * 2 -> 1
+   * 3 -> -2
+   * ...
+   *
+   * Здесь исходник читаем как uint32.
+   */
+  {
+    const count = Math.floor((end - start) / 4);
+
+    let value = 0;
+
+    let inside = 0;
+    let negative = 0;
+    let tooHigh = 0;
+
+    let min = Infinity;
+    let max = -Infinity;
+
+    const decodedDeltas = [];
+    const indices = [];
+
+    for (let i = 0; i < count; i++) {
+      const raw = payload.readUInt32LE(start + i * 4);
+
+      const delta = raw % 2 === 0 ? raw / 2 : -((raw + 1) / 2);
+
+      value += delta;
+
+      decodedDeltas.push(delta);
+
+      indices.push(value);
+
+      min = Math.min(min, value);
+
+      max = Math.max(max, value);
+
+      if (value >= 0 && value < geometryCount) {
+        inside++;
+      } else if (value < 0) {
+        negative++;
+      } else {
+        tooHigh++;
+      }
+    }
+
+    variants.push({
+      kind: "zigzag-u32-cumulative",
+
+      start,
+      end,
+
+      count,
+
+      min,
+      max,
+
+      final: value,
+
+      inside,
+      negative,
+      tooHigh,
+
+      insideRatio: count ? inside / count : 0,
+
+      firstDeltas: decodedDeltas.slice(0, 256),
+
+      firstIndices: indices.slice(0, 256),
+
+      lastIndices: indices.slice(Math.max(0, indices.length - 128)),
+    });
+  }
+
+  return variants;
+}
+
+function decodeIndexedTopology(payload, geometry, start, end) {
+  const groups = [];
+
+  const anomalies = [];
+
+  let currentIndex = 0;
+  let currentGroup = [];
+
+  const valueCount = Math.floor((end - start) / 4);
+
+  function flush(reason, streamPosition) {
+    if (currentGroup.length > 0) {
+      groups.push({
+        groupIndex: groups.length,
+
+        reason,
+
+        streamEnd: streamPosition,
+
+        indices: currentGroup,
+      });
+    }
+
+    currentGroup = [];
+  }
+
+  for (let i = 0; i < valueCount; i++) {
+    const offset = start + i * 4;
+
+    const delta = payload.readInt32LE(offset);
+
+    currentIndex += delta;
+
+    /*
+     * Очень важный кейс:
+     *
+     * cumulative == 0 сейчас считаем
+     * delimiter/reset, а НЕ vertex #0.
+     *
+     * Это гипотеза, но 20 возвратов ровно
+     * в ноль делают её очень сильной.
+     */
+    if (currentIndex === 0) {
+      flush("zero-reset", i);
+
+      continue;
+    }
+
+    if (currentIndex < 0 || currentIndex >= geometry.count) {
+      anomalies.push({
+        streamIndex: i,
+
+        offset,
+
+        delta,
+
+        cumulativeIndex: currentIndex,
+
+        groupLength: currentGroup.length,
+      });
+
+      /*
+       * Пока НЕ ломаем поток и не reset'им.
+       * Хотим увидеть настоящую аномалию.
+       */
+      continue;
+    }
+
+    currentGroup.push(currentIndex);
+  }
+
+  if (currentGroup.length > 0) {
+    flush("end-of-section", valueCount - 1);
+  }
+
+  /*
+   * Создаем debug GeoJSON.
+   */
+  const features = [];
+
+  for (const group of groups) {
+    const coordinates = group.indices.map((index) => [
+      geometry.x[index],
+      geometry.y[index],
+    ]);
+
+    if (coordinates.length < 2) {
+      continue;
+    }
+
+    const closed =
+      coordinates.length >= 3 &&
+      coordinates[0][0] === coordinates[coordinates.length - 1][0] &&
+      coordinates[0][1] === coordinates[coordinates.length - 1][1];
+
+    features.push({
+      type: "Feature",
+
+      properties: {
+        roflGroupIndex: group.groupIndex,
+
+        indexCount: group.indices.length,
+
+        firstIndex: group.indices[0],
+
+        lastIndex: group.indices[group.indices.length - 1],
+
+        termination: group.reason,
+
+        closed,
+      },
+
+      geometry: {
+        type: closed && coordinates.length >= 4 ? "Polygon" : "LineString",
+
+        coordinates:
+          closed && coordinates.length >= 4 ? [coordinates] : coordinates,
+      },
+    });
+  }
+
+  return {
+    groups,
+
+    anomalies,
+
+    features,
+
+    diagnostics: {
+      start,
+      end,
+
+      valueCount,
+
+      groupCount: groups.length,
+
+      featureCount: features.length,
+
+      anomalyCount: anomalies.length,
+
+      groupSizes: groups.map((group) => group.indices.length),
+
+      minGroupSize: groups.length
+        ? Math.min(...groups.map((g) => g.indices.length))
+        : 0,
+
+      maxGroupSize: groups.length
+        ? Math.max(...groups.map((g) => g.indices.length))
+        : 0,
+    },
+  };
+}
+
 function main() {
   const args = process.argv.slice(2);
 
@@ -2818,7 +3142,7 @@ function main() {
   if (!input) {
     die(
       "usage: node rofl-to-geojson.js tile.vt " +
-        "[--mode=features|delta-columns|geometry-info|post-dump|column-scan|structure-dump|section-dump|stream-scan|tail-scan|tail-i32-pairs|tail-record-scan|tail-sections|dump] " +
+        "[--mode=features|delta-columns|geometry-info|post-dump|column-scan|indexed-geometry|delta-index-scan|structure-dump|section-dump|stream-scan|tail-scan|tail-i32-pairs|tail-record-scan|tail-sections|dump] " +
         "[--layer=N|name] " +
         "[--out=file.json]",
     );
@@ -2841,6 +3165,8 @@ function main() {
     "tail-record-scan",
     "tail-sections",
     "section-dump",
+    "delta-index-scan",
+    "indexed-geometry",
     "dump",
   ];
   if (!allowedModes.includes(mode)) {
@@ -2998,6 +3324,96 @@ function main() {
         },
 
         "Geometry info written",
+      );
+
+      return;
+    }
+
+    if (mode === "indexed-geometry") {
+      const indexStart = 88832;
+
+      const indexEnd = 93120;
+
+      const decoded = decodeIndexedTopology(
+        layer.payload,
+        geometry,
+        indexStart,
+        indexEnd,
+      );
+
+      const geojson = {
+        type: "FeatureCollection",
+
+        name: "rofl-indexed-geometry-debug",
+
+        roflDiagnostics: {
+          layer: layer.name,
+
+          version: rofl.version,
+
+          coordinateCount: geometry.count,
+
+          indexStream: {
+            start: indexStart,
+
+            end: indexEnd,
+
+            bytes: indexEnd - indexStart,
+          },
+
+          ...decoded.diagnostics,
+
+          anomalies: decoded.anomalies,
+        },
+
+        features: decoded.features,
+      };
+
+      writeJson(outputArg, geojson, "Indexed geometry written");
+
+      return;
+    }
+
+    if (mode === "delta-index-scan") {
+      /*
+       * Секция, которая по section-dump
+       * выглядит как настоящий signed delta stream.
+       */
+      const sectionStart = 88832;
+
+      const sectionEnd = 93120;
+
+      const variants = analyzeDeltaIndexVariants(
+        layer.payload,
+        sectionStart,
+        sectionEnd,
+        geometry.count,
+      );
+
+      writeJson(
+        outputArg,
+
+        {
+          layer: layer.name,
+
+          roflVersion: rofl.version,
+
+          schemaCount: rofl.schemaCount,
+
+          geometryCount: geometry.count,
+
+          section: {
+            start: sectionStart,
+
+            end: sectionEnd,
+
+            bytes: sectionEnd - sectionStart,
+          },
+
+          variants,
+        },
+
+        "Delta index scan written",
       );
 
       return;
